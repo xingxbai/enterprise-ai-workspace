@@ -5,7 +5,6 @@ import { useId, useRef } from "react";
 export default function DetailModal({ ticketId }: { ticketId: string }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
-
   return (
     <>
       <button

@@ -1,4 +1,5 @@
 import { getTicketSummaries } from "@/data/tickets";
+import ApproveButton from "./approveButton";
 import DetailModal from "./detailModal";
 
 export default async function Home() {
@@ -74,7 +75,10 @@ export default async function Home() {
                       {ticket.updatedAt}
                     </td>
                     <td className="whitespace-nowrap px-4 py-4">
-                      <DetailModal ticketId={ticket.id} />
+                      <div className="flex items-center gap-4">
+                        <DetailModal ticketId={ticket.id} />
+                        <ApproveButton ticketId={ticket.id} />
+                      </div>
                     </td>
                   </tr>
                 ))
