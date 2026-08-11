@@ -46,7 +46,22 @@
 7. 不为使用框架而使用 LangChain、Agent、LangGraph、MCP、Redis 或向量数据库。
 8. 安全、权限、异常、成本和效果评估贯穿每一章。
 
-## 四、每章固定结构
+## 四、企业项目实战优先口径
+
+本项目的核心目标是让学习者在面试中能讲出真实、完整、企业可落地的 AI 应用项目经验，而不是从 0 到 1 手写底层 API。
+
+执行要求：
+
+- 每章优先沉淀企业项目实战功能、架构决策、边界设计和面试表达。
+- 成熟方案优先于原生手写实现。Streaming、模型调用和消息协议优先使用 AI SDK、Provider Adapter、SSE 或稳定 UI message 协议。
+- 原生 `ReadableStream`、`TextEncoder`、`TextDecoder`、SSE 字符串格式等只作为底层理解、线上排障和面试追问内容，不作为长期业务主实现。
+- 表单、请求体、模型输出和工具参数优先使用 Zod 等运行时校验方案。
+- UI 和交互优先遵循项目组件规范或成熟组件库，不把手搓控件作为课程主线。
+- 每章代码必须接入 `Enterprise AI Workspace` 业务链路，能够被后续课程继续演进，不做不可复用的孤立 Demo。
+- 每章都要能回答：业务为什么需要、为什么选这个成熟方案、安全边界在哪里、如何处理权限/租户/Prompt/敏感数据/超时/取消/重试/审计/成本、后续如何扩展到 RAG 或 Tool Calling。
+- 没有真实密钥、真实业务 API 或真实数据源时，返回明确错误或空状态，不用模拟 AI 文本、固定回答、人工延迟或虚假业务数据冒充真实链路。
+
+## 五、每章固定结构
 
 ```markdown
 # 第 XX 天：章节标题
@@ -90,9 +105,9 @@
 - 每章说明安全风险、技术选型、未选方案和最终决策。
 - 每章练习必须有明确验收标准。
 
-## 五、掌握等级
+## 六、掌握等级
 
-### 5.1 必须精通
+### 6.1 必须精通
 
 - React、TypeScript 和 Next.js App Router 边界。
 - Route Handler、AI BFF、认证、RBAC 和数据权限。
@@ -103,7 +118,7 @@
 - RAG 核心链路、引用和知识权限。
 - Tool Calling 的参数校验、授权、确认和幂等。
 
-### 5.2 熟悉即可
+### 6.2 熟悉即可
 
 - PostgreSQL、pgvector、Embedding 和基础检索评估。
 - FastAPI 和文件处理 API。
@@ -111,22 +126,22 @@
 - Agent 状态、工具循环和错误恢复。
 - Docker、部署、可观测性和 Token 成本。
 
-### 5.3 了解即可
+### 6.3 了解即可
 
 - LangChain 常见抽象。
 - LangGraph 复杂状态编排。
 - MCP 协议定位。
 - Rerank、混合检索和复杂评测平台。
 
-## 六、60 天路线
+## 七、60 天路线
 
 ### 第一阶段：Next.js 与 AI 交互基础（Day1～10）
 
 1. App Router 与默认服务端组件边界。
 2. Client Component 边界和可序列化 Props。
 3. Route Handler 与服务端密钥边界。
-4. ReadableStream、背压和文本编解码。
-5. SSE 与 AI SDK 消息协议。
+4. 企业 AI 回复建议 Streaming 成熟方案。
+5. 企业 AI 回复建议的消息协议与状态管理。
 6. `useChat` 状态、停止和重新生成。
 7. 流式 Markdown 渲染与消息性能。
 8. DeepSeek Chat Completions 真实接入。
@@ -200,7 +215,7 @@
 
 课程可以根据真实账号和学习反馈微调日序，但不能偏离企业业务集成主线。修改路线必须同步更新本文件。
 
-## 七、架构与 Provider 原则
+## 八、架构与 Provider 原则
 
 ```text
 浏览器 UI
@@ -225,7 +240,7 @@ Provider Adapter
 - 模型切换不应影响页面和业务流程；协议差异只进入适配层。
 - 不假设所有 OpenAI Compatible 接口支持完全相同的字段和能力。
 
-## 八、安全与工程质量
+## 九、安全与工程质量
 
 每个模块必须考虑：
 
@@ -244,7 +259,7 @@ Provider Adapter
 - AI 效果有正确率、引用命中率、采纳率或任务成功率等指标。
 - 日志不记录密钥、完整敏感正文和无必要的模型原始输出。
 
-## 九、代码与操作约束
+## 十、代码与操作约束
 
 - 统一使用 TypeScript、React 当前稳定实践和 Next.js App Router。
 - 页面和布局默认使用 Server Component。

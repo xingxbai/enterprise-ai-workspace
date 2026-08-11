@@ -5,8 +5,8 @@
 ## 当前进度
 
 - 当前课程：第 4 天。
-- 当前知识点：ReadableStream、背压和文本编解码。
-- 当前代码：前三天代码保持稳定；本节先沉淀流式响应底层知识，不引入虚假 AI 链路。
+- 当前知识点：企业 AI 回复建议 Streaming 成熟方案。
+- 当前代码：前三天代码保持稳定；新增客服回复建议流式生成链路，使用 AI SDK、Provider Adapter 和服务端 DeepSeek/Kimi 配置，密钥未配置时返回 `503`。
 
 ## 权威文档
 
@@ -14,7 +14,7 @@
 - [第 1 天：App Router 与默认服务端组件边界](./docs/Day01AppRouter与默认服务端组件边界.md)
 - [第 2 天：Client Component 边界和可序列化 Props](./docs/Day02ClientComponent边界和可序列化Props.md)
 - [第 3 天：Route Handler 与服务端密钥边界](./docs/Day03RouteHandler与服务端密钥边界.md)
-- [第 4 天：ReadableStream、背压和文本编解码](./docs/Day04ReadableStream背压和文本编解码.md)
+- [第 4 天：企业 AI 回复建议 Streaming 成熟方案](./docs/Day04企业AI回复建议Streaming成熟方案.md)
 
 后续课程、代码、练习和面试准备均以新项目内的课程执行规范为准。旧项目只保留为历史学习记录，不再作为新课程代码基础。
 
