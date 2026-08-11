@@ -27,6 +27,31 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - UI 和交互优先遵循项目组件规范或成熟组件库，不手搓复杂控件作为主线。
 - 状态、取消、重试和错误处理优先使用成熟 hook、service 和 adapter 抽象。
 
+## 真实 AI 接入参考源
+
+真实 AI 场景接入优先参考本机历史项目：
+
+```txt
+/Users/baixingxing/xingxbai/AI/FrontendEngineer
+```
+
+重点参考内容：
+
+- `apps/web/.env.example`：DeepSeek、Kimi、模型名、Base URL 和超时配置命名。
+- `apps/web/src/lib/ai/deepseek.ts`：DeepSeek OpenAI-compatible Chat Completions 接入方式。
+- `apps/web/src/lib/ai/kimi.ts`：Kimi OpenAI-compatible Chat Completions 接入方式。
+- `apps/web/src/lib/ai/model-service.ts`：Provider 选择、错误归一化和日志脱敏。
+- `apps/web/src/lib/ai/chat-service.ts`：AI SDK `streamText`、取消信号、流式响应和用量处理。
+- `apps/web/src/app/api/chat/route.ts`：Route Handler 作为 AI BFF 的请求校验和错误边界。
+
+当前项目沿用的关键约定：
+
+- DeepSeek：`DEEPSEEK_API_KEY`、`DEEPSEEK_BASE_URL=https://api.deepseek.com`、`DEEPSEEK_MODEL=deepseek-chat`。
+- Kimi：`KIMI_API_KEY`、`KIMI_BASE_URL=https://api.moonshot.cn/v1`、`KIMI_MODEL=kimi-k2.5`。
+- Provider 选择：`AI_CHAT_PROVIDER=deepseek | kimi`。
+- 调用方式：OpenAI-compatible Chat Completions，使用 AI SDK `createOpenAI(...).chat(modelId)` 和 `streamText`，不要走 OpenAI Responses API。
+- 密钥变量严禁使用 `NEXT_PUBLIC_` 前缀，严禁返回给浏览器。
+
 ## 原生底层的定位
 
 - 原生 `ReadableStream`、`TextEncoder`、`TextDecoder`、SSE 字符串格式等只作为底层理解、排障和面试追问内容。
@@ -51,7 +76,9 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - 客户端只传最小 DTO，例如 `ticketId`，不能传 API Key、baseURL、模型名、完整 Prompt、权限判断或完整敏感对象。
 - Route Handler 是 AI BFF 边界，必须做运行时校验、错误脱敏，并把取消信号继续传给模型或上游业务请求。
 - Provider Adapter 只在服务端读取密钥和厂商配置，封装 DeepSeek、Kimi 等 OpenAI-compatible 差异。
-- 没有真实密钥、真实业务 API 或真实数据源时，返回明确错误或空状态，不用模拟 AI 文本、固定回答、人工延迟或虚假业务数据冒充真实链路。
+- 没有真实密钥或真实业务 API 时，返回明确错误或空状态，不用模拟 AI 文本、固定回答、人工延迟冒充真实链路。
+- 为了支撑课程和面试演示，可以提供明确命名的学习演示种子数据，但必须标注为 demo fixture，且真实业务 API 配置存在时必须优先使用真实数据源。
+- 读取型业务 API 在开发环境不可用时，可以降级到学习演示种子数据并记录脱敏日志，避免页面整体崩溃；写入型业务 API 不允许假成功。
 - 每章代码必须和后续课程可连续演进，不做不可复用、不可连接的临时功能。
 
 ## 文档要求

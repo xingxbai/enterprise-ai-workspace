@@ -6,7 +6,7 @@
 
 - 当前课程：第 4 天。
 - 当前知识点：企业 AI 回复建议 Streaming 成熟方案。
-- 当前代码：前三天代码保持稳定；新增客服回复建议流式生成链路，使用 AI SDK、Provider Adapter 和服务端 DeepSeek/Kimi 配置，密钥未配置时返回 `503`。
+- 当前代码：前三天代码保持稳定；工单列表默认使用学习演示种子数据，真实工单 API 不可用时自动降级；新增客服回复建议流式生成链路，使用 AI SDK、Provider Adapter 和服务端 DeepSeek/Kimi 配置，密钥未配置时返回 `503`。
 
 ## 权威文档
 
@@ -26,6 +26,26 @@
 - TypeScript 5
 - Tailwind CSS 4
 - pnpm
+
+## 三方依赖与用途
+
+### 运行时依赖
+
+- `next`：应用框架，使用 App Router、Server Component、Client Component 和 Route Handler。
+- `react` / `react-dom`：React 19 组件和渲染运行时。
+- `ai`：Vercel AI SDK 核心包，提供 `streamText`、`generateText`、消息流和模型调用抽象。
+- `@ai-sdk/openai`：Vercel AI SDK 的 OpenAI Provider 包，本项目用于接入 DeepSeek 和 Kimi 的 OpenAI-compatible Chat Completions。
+- `zod`：运行时 Schema 校验，用于 Route Handler 请求体、Prompt 变量、模型输出和 Tool 参数校验。
+- `server-only`：服务端模块边界保护，防止密钥、Provider Adapter 和业务 API 代码被误导入客户端。
+
+### 开发期依赖
+
+- `typescript`：类型检查。
+- `eslint` / `eslint-config-next`：代码质量检查和 Next.js 推荐规则。
+- `tailwindcss` / `@tailwindcss/postcss`：样式工具链。
+- `@types/node`、`@types/react`、`@types/react-dom`：TypeScript 类型声明。
+
+新增三方依赖时，必须同步更新本节，说明它解决的企业问题、使用边界和是否进入客户端产物。
 
 ## 常用检查
 

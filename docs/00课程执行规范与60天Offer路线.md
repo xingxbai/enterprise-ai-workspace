@@ -59,7 +59,9 @@
 - UI 和交互优先遵循项目组件规范或成熟组件库，不把手搓控件作为课程主线。
 - 每章代码必须接入 `Enterprise AI Workspace` 业务链路，能够被后续课程继续演进，不做不可复用的孤立 Demo。
 - 每章都要能回答：业务为什么需要、为什么选这个成熟方案、安全边界在哪里、如何处理权限/租户/Prompt/敏感数据/超时/取消/重试/审计/成本、后续如何扩展到 RAG 或 Tool Calling。
-- 没有真实密钥、真实业务 API 或真实数据源时，返回明确错误或空状态，不用模拟 AI 文本、固定回答、人工延迟或虚假业务数据冒充真实链路。
+- 没有真实密钥或真实业务 API 时，返回明确错误或空状态，不用模拟 AI 文本、固定回答、人工延迟冒充真实链路。
+- 为了支撑课程和面试演示，可以提供明确命名的学习演示种子数据，但必须标注为 demo fixture，且真实业务 API 配置存在时必须优先使用真实数据源。
+- 读取型业务 API 在开发环境不可用时，可以降级到学习演示种子数据并记录脱敏日志，避免页面整体崩溃；写入型业务 API 不允许假成功。
 
 ## 五、每章固定结构
 
@@ -239,6 +241,31 @@ Provider Adapter
 - Provider Adapter 处理鉴权、模型名、参数、流协议、错误和用量差异。
 - 模型切换不应影响页面和业务流程；协议差异只进入适配层。
 - 不假设所有 OpenAI Compatible 接口支持完全相同的字段和能力。
+
+### 8.1 真实 AI 接入参考源
+
+真实 AI 场景接入优先参考本机历史项目：
+
+```txt
+/Users/baixingxing/xingxbai/AI/FrontendEngineer
+```
+
+重点参考：
+
+- `apps/web/.env.example`：DeepSeek、Kimi、模型名、Base URL 和超时配置命名。
+- `apps/web/src/lib/ai/deepseek.ts`：DeepSeek OpenAI-compatible Chat Completions 接入方式。
+- `apps/web/src/lib/ai/kimi.ts`：Kimi OpenAI-compatible Chat Completions 接入方式。
+- `apps/web/src/lib/ai/model-service.ts`：Provider 选择、错误归一化和日志脱敏。
+- `apps/web/src/lib/ai/chat-service.ts`：AI SDK `streamText`、取消信号、流式响应和用量处理。
+- `apps/web/src/app/api/chat/route.ts`：Route Handler 作为 AI BFF 的请求校验和错误边界。
+
+当前项目沿用的关键约定：
+
+- DeepSeek：`DEEPSEEK_API_KEY`、`DEEPSEEK_BASE_URL=https://api.deepseek.com`、`DEEPSEEK_MODEL=deepseek-chat`。
+- Kimi：`KIMI_API_KEY`、`KIMI_BASE_URL=https://api.moonshot.cn/v1`、`KIMI_MODEL=kimi-k2.5`。
+- Provider 选择：`AI_CHAT_PROVIDER=deepseek | kimi`。
+- 调用方式：OpenAI-compatible Chat Completions，使用 AI SDK `createOpenAI(...).chat(modelId)` 和 `streamText`，不要走 OpenAI Responses API。
+- 密钥变量严禁使用 `NEXT_PUBLIC_` 前缀，严禁返回给浏览器。
 
 ## 九、安全与工程质量
 
