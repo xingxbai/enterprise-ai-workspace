@@ -8,6 +8,7 @@ import {
   recordModelError,
 } from "@/features/ai/server/chatProvider";
 import { getTicketSummaryById } from "@/data/tickets";
+import { createReplySuggestionStreamResponse } from "@/features/customer-service/replySuggestionProtocol";
 
 type ReplySuggestionStreamInput = {
   ticketId: string;
@@ -38,6 +39,7 @@ export async function createReplySuggestionResponse({
   }
 
   const { configuration, model } = modelConfiguration;
+  const requestId = crypto.randomUUID();
   const result = streamText({
     abortSignal: signal,
     maxOutputTokens: configuration.maxOutputTokens,
@@ -63,10 +65,12 @@ export async function createReplySuggestionResponse({
       totalMs: configuration.requestTimeoutMs,
     },
   });
-
-  return result.toTextStreamResponse({
-    headers: {
-      "Cache-Control": "no-store, no-transform",
-    },
+  return createReplySuggestionStreamResponse({
+    createdAt: new Date().toISOString(),
+    modelId: configuration.modelId,
+    providerId: configuration.providerId,
+    requestId,
+    stream: result.stream,
+    ticketId: ticket.id,
   });
 }

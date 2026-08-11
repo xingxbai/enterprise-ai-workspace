@@ -1,13 +1,13 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { readUtf8TextStream } from "@/lib/streaming/textStream";
+import { readReplySuggestionEventStream } from "@/features/customer-service/replySuggestionProtocol";
 
 type ReplySuggestionButtonProps = {
   ticketId: string;
 };
 
-type StreamStatus = "idle" | "streaming" | "done" | "error";
+type StreamStatus = "idle" | "streaming" | "done" | "error" | "stopped";
 
 export default function ReplySuggestionButton({
   ticketId,
@@ -21,7 +21,6 @@ export default function ReplySuggestionButton({
     abortControllerRef.current?.abort();
 
     const abortController = new AbortController();
-    console.log(11111, abortController.signal);
     abortControllerRef.current = abortController;
     setReply("");
     setMessage(null);
@@ -50,19 +49,50 @@ export default function ReplySuggestionButton({
         return;
       }
 
-      await readUtf8TextStream(
+      let isFinished = false;
+      let hasFailed = false;
+
+      await readReplySuggestionEventStream(
         response.body,
-        (chunk) => {
-          setReply((currentReply) => currentReply + chunk);
+        (event) => {
+          if (event.type === "start") {
+            setMessage("正在生成回复建议");
+            return;
+          }
+
+          if (event.type === "delta") {
+            setReply((currentReply) => currentReply + event.text);
+            return;
+          }
+
+          if (event.type === "finish") {
+            isFinished = true;
+            setMessage("回复建议已生成");
+            setStatus("done");
+            return;
+          }
+
+          if (event.type === "aborted") {
+            isFinished = true;
+            setMessage(event.message);
+            setStatus("stopped");
+            return;
+          }
+
+          hasFailed = true;
+          setMessage(event.message);
+          setStatus("error");
         },
         abortController.signal,
       );
 
-      setStatus("done");
+      if (!isFinished && !hasFailed) {
+        setStatus("done");
+      }
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {
         setMessage("已停止生成");
-        setStatus("idle");
+        setStatus("stopped");
       } else {
         setMessage("回复建议生成失败");
         setStatus("error");
