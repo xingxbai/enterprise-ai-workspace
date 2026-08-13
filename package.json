@@ -3,14 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --port 4000",
     "build": "next build",
-    "start": "next start",
+    "start": "next start --port 4000",
     "lint": "eslint",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@ai-sdk/openai": "^4.0.37",
+    "@ai-sdk/react": "^4.0.67",
     "ai": "^7.0.59",
     "next": "16.3.0",
     "react": "19.2.8",

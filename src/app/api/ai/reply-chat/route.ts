@@ -1,11 +1,14 @@
 import { z } from "zod";
 
-import { createReplySuggestionResponse } from "@/features/customer-service/server/replySuggestionStream";
+import { createReplySuggestionChatResponse } from "@/features/customer-service/server/replySuggestionChatStream";
 import { createBadRequestResponseFromZodError } from "@/features/http/server/requestValidation";
 
-const replySuggestionPayloadSchema = z
+const replySuggestionChatPayloadSchema = z
   .object({
+    messageId: z.string().optional(),
+    messages: z.unknown(),
     ticketId: z.string().trim().min(1, "ticketId 不能为空"),
+    trigger: z.enum(["submit-message", "regenerate-message"]).optional(),
   })
   .strict();
 
@@ -18,15 +21,19 @@ export async function POST(request: Request) {
     return Response.json({ message: "请求体必须是 JSON" }, { status: 400 });
   }
 
-  const payload = replySuggestionPayloadSchema.safeParse(body);
+  const payload = replySuggestionChatPayloadSchema.safeParse(body);
 
   if (!payload.success) {
     return createBadRequestResponseFromZodError(payload.error, {
+      messageId: "messageId",
+      messages: "messages",
       ticketId: "ticketId",
+      trigger: "trigger",
     });
   }
 
-  return createReplySuggestionResponse({
+  return createReplySuggestionChatResponse({
+    messages: payload.data.messages,
     signal: request.signal,
     ticketId: payload.data.ticketId,
   });

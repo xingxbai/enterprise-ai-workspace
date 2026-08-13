@@ -1,7 +1,7 @@
 import { getTicketSummaries } from "@/data/tickets";
 import ApproveButton from "./approveButton";
 import DetailModal from "./detailModal";
-import ReplySuggestionButton from "./replySuggestionButton";
+import ReplySuggestionChatPanel from "./replySuggestionChatPanel";
 
 export default async function Home() {
   const environmentLabel =
@@ -79,7 +79,7 @@ export default async function Home() {
                       <div className="flex items-center gap-4">
                         <DetailModal ticketId={ticket.id} />
                         <ApproveButton ticketId={ticket.id} />
-                        <ReplySuggestionButton ticketId={ticket.id} />
+                        <ReplySuggestionChatPanel ticketId={ticket.id} />
                       </div>
                     </td>
                   </tr>

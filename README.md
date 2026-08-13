@@ -4,9 +4,9 @@
 
 ## 当前进度
 
-- 当前课程：第 5 天。
-- 当前知识点：企业 AI 回复建议的消息协议与状态管理。
-- 当前代码：前三天代码保持稳定；工单列表默认使用学习演示种子数据，真实工单 API 不可用时自动降级；客服回复建议使用 AI SDK、Provider Adapter 和结构化事件协议处理开始、增量、完成、失败和取消。
+- 当前课程：第 6 天。
+- 当前知识点：`useChat` 状态、停止和重新生成。
+- 当前代码：前三天代码保持稳定；工单列表默认使用学习演示种子数据，真实工单 API 不可用时自动降级；客服回复建议升级为 AI SDK UI Message Stream，并用 `useChat` 处理提交、流式生成、停止、重新生成和错误状态。
 
 ## 权威文档
 
@@ -16,6 +16,7 @@
 - [第 3 天：Route Handler 与服务端密钥边界](./docs/Day03RouteHandler与服务端密钥边界.md)
 - [第 4 天：企业 AI 回复建议 Streaming 成熟方案](./docs/Day04企业AI回复建议Streaming成熟方案.md)
 - [第 5 天：企业 AI 回复建议的消息协议与状态管理](./docs/Day05企业AI回复建议的消息协议与状态管理.md)
+- [第 6 天：useChat 状态、停止和重新生成](./docs/Day06useChat状态停止和重新生成.md)
 
 后续课程、代码、练习和面试准备均以新项目内的课程执行规范为准。旧项目只保留为历史学习记录，不再作为新课程代码基础。
 
@@ -35,6 +36,7 @@
 - `next`：应用框架，使用 App Router、Server Component、Client Component 和 Route Handler。
 - `react` / `react-dom`：React 19 组件和渲染运行时。
 - `ai`：Vercel AI SDK 核心包，提供 `streamText`、`generateText`、消息流和模型调用抽象。
+- `@ai-sdk/react`：Vercel AI SDK 的 React UI 包，提供 `useChat` 等成熟 hook，用于管理消息、状态、停止和重新生成。
 - `@ai-sdk/openai`：Vercel AI SDK 的 OpenAI Provider 包，本项目用于接入 DeepSeek 和 Kimi 的 OpenAI-compatible Chat Completions。
 - `zod`：运行时 Schema 校验，用于 Route Handler 请求体、Prompt 变量、模型输出和 Tool 参数校验。
 - `server-only`：服务端模块边界保护，防止密钥、Provider Adapter 和业务 API 代码被误导入客户端。
@@ -53,6 +55,18 @@
 ```bash
 pnpm typecheck
 pnpm lint
+```
+
+## 本地启动
+
+```bash
+pnpm dev
+```
+
+项目启动端口固定为：
+
+```txt
+http://localhost:5000
 ```
 
 按照课程约束，不默认执行构建、启动开发服务或 Git 操作。
