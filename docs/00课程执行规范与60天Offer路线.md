@@ -107,6 +107,8 @@
 - 每章说明安全风险、技术选型、未选方案和最终决策。
 - 涉及 AI SDK、Provider、业务 API 或关键三方库时，每章必须按调用顺序列出函数作用、所属分层和企业开发场景。
 - 每章练习必须有明确验收标准。
+- 后续代码必须保留简单注释，重点解释业务边界、安全边界和企业取舍，避免为普通语法写过密注释。
+- 本地项目启动端口固定为 `4000`，`package.json`、README 和课程文档不得漂移到其他端口。
 
 ## 六、掌握等级
 
@@ -147,8 +149,8 @@
 5. 企业 AI 回复建议的消息协议与状态管理。
 6. `useChat` 状态、停止和重新生成。
 7. 流式 Markdown 渲染与消息性能。
-8. DeepSeek Chat Completions 真实接入。
-9. Kimi 接入与 Provider Adapter。
+8. DeepSeek Chat Completions 真实接入与调用审计。
+9. 多 Provider Adapter 与 Kimi 切换治理。
 10. Next.js AI BFF 请求校验和错误边界。
 
 ### 第二阶段：企业接入基础（Day11～20）

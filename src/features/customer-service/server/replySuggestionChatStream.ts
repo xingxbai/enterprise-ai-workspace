@@ -12,9 +12,9 @@ import { getTicketSummaryById } from "@/data/tickets";
 import {
   getChatModel,
   ModelConfigurationError,
-  recordModelCompletion,
   recordModelError,
 } from "@/features/ai/server/chatProvider";
+import { recordModelCompletion } from "@/features/ai/server/modelAuditLog";
 
 type ReplySuggestionChatInput = {
   messages: unknown;

@@ -1,4 +1,4 @@
-# 第 8 天：DeepSeek Chat Completions 真实接入
+# 第 8 天：DeepSeek Chat Completions 真实接入与调用审计
 
 掌握级别：必须精通
 
@@ -8,11 +8,11 @@
 
 ## 一句话理解
 
-DeepSeek 在本项目里不是浏览器直接调用，而是通过服务端 Provider Adapter 以 OpenAI-compatible Chat Completions 方式接入，再由 AI SDK `streamText` 输出到企业业务链路。
+DeepSeek 在本项目里不是浏览器直接调用，而是通过服务端 Provider Adapter 以 OpenAI-compatible Chat Completions 方式接入，再由 AI SDK `streamText` 输出到企业业务链路；本章真正有价值的部分是把真实调用、requestId、finishReason 和 usage 纳入后续审计与成本统计链路。
 
 ## 为什么会出现
 
-前 7 天已经完成了客服工单、AI BFF、`useChat`、UI Message Stream 和 Markdown 展示。第 8 天要把模型厂商接入边界讲清楚：真实 DeepSeek 密钥如何配置、服务端如何选择模型、错误如何脱敏、前端为什么不能看到密钥和完整配置。
+前 7 天已经完成了客服工单、AI BFF、`useChat`、UI Message Stream 和 Markdown 展示。第 8 天不是重复讲“怎么把密钥写进 `.env.local`”，而是把模型厂商接入边界和调用审计讲清楚：服务端如何选择模型、错误如何脱敏、前端为什么不能看到密钥和完整配置、一次模型完成后如何记录 usage。
 
 ## 企业为什么需要
 
@@ -209,7 +209,7 @@ pnpm lint
 
 ## 延伸阅读
 
-下一章进入 Kimi 接入与 Provider Adapter，对比两个 OpenAI-compatible 厂商如何在同一业务链路中切换。
+下一章进入多 Provider Adapter 与 Kimi 切换治理。第 9 天会把 `recordModelCompletion` 从 Provider Adapter 拆到独立审计模块，并把状态接口升级为 DeepSeek/Kimi 全量非敏感状态。
 
 ## 企业级练习与验收标准
 

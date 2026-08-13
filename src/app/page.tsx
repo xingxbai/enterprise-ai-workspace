@@ -1,4 +1,5 @@
 import { getTicketSummaries } from "@/data/tickets";
+import { getChatProvidersStatus } from "@/features/ai/server/chatProvider";
 import ApproveButton from "./approveButton";
 import DetailModal from "./detailModal";
 import ReplySuggestionChatPanel from "./replySuggestionChatPanel";
@@ -6,6 +7,10 @@ import ReplySuggestionChatPanel from "./replySuggestionChatPanel";
 export default async function Home() {
   const environmentLabel =
     process.env.NODE_ENV === "production" ? "生产环境" : "开发环境";
+  const providerStatus = getChatProvidersStatus();
+  const activeProvider = providerStatus.providers.find(
+    (provider) => provider.isActive,
+  );
   const tickets = await getTicketSummaries();
 
   return (
@@ -28,6 +33,45 @@ export default async function Home() {
           <p className="shrink-0 text-sm text-zinc-500">
             共 {tickets.length} 条
           </p>
+        </div>
+
+        <div className="mt-6 rounded-xl border border-zinc-200 bg-white p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-medium">模型服务状态</p>
+              <p className="mt-1 text-xs text-zinc-500">
+                当前由服务端 Provider Adapter 选择模型，前端不接触密钥、baseURL 或完整 Prompt。
+              </p>
+            </div>
+            <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs text-zinc-600">
+              当前：{activeProvider?.label ?? "未识别"}
+            </span>
+          </div>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            {providerStatus.providers.map((provider) => (
+              <div
+                className="rounded-lg border border-zinc-100 bg-zinc-50 p-3 text-sm"
+                key={provider.providerId}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <p className="font-medium">{provider.label}</p>
+                  <span
+                    className={
+                      provider.isConfigured
+                        ? "text-xs text-emerald-700"
+                        : "text-xs text-amber-700"
+                    }
+                  >
+                    {provider.isConfigured ? "已配置" : "未配置"}
+                  </span>
+                </div>
+                <p className="mt-2 text-xs text-zinc-500">
+                  {provider.modelId} · {provider.baseURLHost}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="mt-8 overflow-x-auto border-y border-zinc-200 bg-white">

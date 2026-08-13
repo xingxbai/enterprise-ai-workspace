@@ -1,8 +1,5 @@
 import "server-only";
 
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import path from "node:path";
-
 import { createOpenAI, type OpenAIProvider } from "@ai-sdk/openai";
 import { z } from "zod";
 
@@ -47,67 +44,26 @@ export class ModelConfigurationError extends Error {
 let deepseekProvider: OpenAIProvider | undefined;
 let kimiProvider: OpenAIProvider | undefined;
 
-type ModelCompletionLog = {
-  createdAt: string;
-  finishReason?: string;
-  modelId: string;
+const chatProviderDefinitions = [
+  {
+    label: "DeepSeek",
+    providerId: "deepseek",
+    temperature: 0.7,
+  },
+  {
+    label: "Kimi",
+    providerId: "kimi",
+    // 企业重点：Kimi 的参数偏好封装在 Provider Adapter，业务层和前端不感知厂商差异。
+    temperature: 1,
+  },
+] as const satisfies Array<{
+  label: string;
   providerId: ChatProviderId;
-  requestId: string;
-  usage?: unknown;
-};
+  temperature: number;
+}>;
 
-function hasServerSecret(value: string | undefined) {
+function hasServerSecret(value: string | undefined): value is string {
   return Boolean(value && value.trim() && !value.includes("请填写"));
-}
-
-function createShanghaiMonthDay(date: Date) {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    day: "2-digit",
-    month: "2-digit",
-    timeZone: "Asia/Shanghai",
-  }).formatToParts(date);
-  const month = parts.find((part) => part.type === "month")?.value ?? "00";
-  const day = parts.find((part) => part.type === "day")?.value ?? "00";
-
-  return `${month}-${day}`;
-}
-
-function toJsonSafeValue(value: unknown) {
-  if (value === undefined) {
-    return undefined;
-  }
-
-  try {
-    return JSON.parse(JSON.stringify(value)) as unknown;
-  } catch {
-    return undefined;
-  }
-}
-
-async function readCompletionLogs(filePath: string) {
-  try {
-    const content = await readFile(filePath, "utf8");
-    const parsedValue = JSON.parse(content) as unknown;
-
-    return Array.isArray(parsedValue) ? parsedValue : [];
-  } catch {
-    return [];
-  }
-}
-
-async function appendModelCompletionLog(entry: ModelCompletionLog) {
-  const logsDirectory = path.join(process.cwd(), "logs");
-  const filePath = path.join(
-    logsDirectory,
-    `${createShanghaiMonthDay(new Date(entry.createdAt))}.json`,
-  );
-
-  await mkdir(logsDirectory, { recursive: true });
-
-  const existingLogs = await readCompletionLogs(filePath);
-  existingLogs.push(entry);
-
-  await writeFile(filePath, `${JSON.stringify(existingLogs, null, 2)}\n`);
 }
 
 function parseAIEnvironment() {
@@ -128,55 +84,102 @@ function parseAIEnvironment() {
   return parsedEnvironment.data;
 }
 
-export function getChatProviderStatus() {
-  const environment = parseAIEnvironment();
-  const providerId = environment.AI_CHAT_PROVIDER;
-  const isDeepSeek = providerId === "deepseek";
-  const apiKey = isDeepSeek
-    ? environment.DEEPSEEK_API_KEY
-    : environment.KIMI_API_KEY;
-  const baseURL = isDeepSeek
-    ? environment.DEEPSEEK_BASE_URL
-    : environment.KIMI_BASE_URL;
-  const modelId = isDeepSeek
-    ? environment.DEEPSEEK_MODEL
-    : environment.KIMI_MODEL;
+function createAIConfiguration(
+  environment: z.infer<typeof aiEnvironmentSchema>,
+  providerId: ChatProviderId,
+): AIConfiguration & { apiKey: string | undefined } {
+  const providerDefinition = chatProviderDefinitions.find(
+    (definition) => definition.providerId === providerId,
+  );
+
+  if (!providerDefinition) {
+    throw new ModelConfigurationError("不支持的模型服务商");
+  }
+
+  if (providerId === "kimi") {
+    return {
+      apiKey: environment.KIMI_API_KEY,
+      baseURL: environment.KIMI_BASE_URL,
+      label: providerDefinition.label,
+      maxOutputTokens: environment.AI_MAX_OUTPUT_TOKENS,
+      modelId: environment.KIMI_MODEL,
+      providerId,
+      requestTimeoutMs: environment.AI_REQUEST_TIMEOUT_MS,
+      temperature: providerDefinition.temperature,
+    };
+  }
 
   return {
-    baseURLHost: new URL(baseURL).host,
-    isConfigured: hasServerSecret(apiKey),
-    label: isDeepSeek ? "DeepSeek" : "Kimi",
+    apiKey: environment.DEEPSEEK_API_KEY,
+    baseURL: environment.DEEPSEEK_BASE_URL,
+    label: providerDefinition.label,
     maxOutputTokens: environment.AI_MAX_OUTPUT_TOKENS,
-    modelId,
+    modelId: environment.DEEPSEEK_MODEL,
     providerId,
     requestTimeoutMs: environment.AI_REQUEST_TIMEOUT_MS,
+    temperature: providerDefinition.temperature,
   };
+}
+
+export function getChatProvidersStatus() {
+  const environment = parseAIEnvironment();
+
+  return {
+    activeProviderId: environment.AI_CHAT_PROVIDER,
+    providers: chatProviderDefinitions.map((definition) => {
+      const configuration = createAIConfiguration(
+        environment,
+        definition.providerId,
+      );
+
+      return {
+        baseURLHost: new URL(configuration.baseURL).host,
+        isActive: definition.providerId === environment.AI_CHAT_PROVIDER,
+        isConfigured: hasServerSecret(configuration.apiKey),
+        label: configuration.label,
+        maxOutputTokens: configuration.maxOutputTokens,
+        modelId: configuration.modelId,
+        providerId: configuration.providerId,
+        requestTimeoutMs: configuration.requestTimeoutMs,
+        temperature: configuration.temperature,
+      };
+    }),
+  };
+}
+
+export function getChatProviderStatus() {
+  const status = getChatProvidersStatus();
+  const activeProvider = status.providers.find(
+    (provider) => provider.providerId === status.activeProviderId,
+  );
+
+  if (!activeProvider) {
+    throw new ModelConfigurationError("不支持的模型服务商");
+  }
+
+  return activeProvider;
 }
 
 export function getChatModel() {
   const environment = parseAIEnvironment();
+  const configurationWithSecret = createAIConfiguration(
+    environment,
+    environment.AI_CHAT_PROVIDER,
+  );
+  const { apiKey, ...configuration } = configurationWithSecret;
 
-  if (environment.AI_CHAT_PROVIDER === "kimi") {
-    if (!hasServerSecret(environment.KIMI_API_KEY)) {
-      throw new ModelConfigurationError("未配置 Kimi 服务端密钥");
-    }
+  if (!hasServerSecret(apiKey)) {
+    throw new ModelConfigurationError(
+      `未配置 ${configuration.label} 服务端密钥`,
+    );
+  }
 
+  if (configuration.providerId === "kimi") {
     kimiProvider ??= createOpenAI({
-      apiKey: environment.KIMI_API_KEY,
-      baseURL: environment.KIMI_BASE_URL,
+      apiKey,
+      baseURL: configuration.baseURL,
       name: "kimi",
     });
-
-    const configuration: AIConfiguration = {
-      baseURL: environment.KIMI_BASE_URL,
-      label: "Kimi",
-      maxOutputTokens: environment.AI_MAX_OUTPUT_TOKENS,
-      modelId: environment.KIMI_MODEL,
-      providerId: "kimi",
-      requestTimeoutMs: environment.AI_REQUEST_TIMEOUT_MS,
-      // 企业重点：Kimi 当前配置固定使用 temperature=1，厂商差异封装在 Provider Adapter。
-      temperature: 1,
-    };
 
     return {
       configuration,
@@ -185,25 +188,11 @@ export function getChatModel() {
     };
   }
 
-  if (!hasServerSecret(environment.DEEPSEEK_API_KEY)) {
-    throw new ModelConfigurationError("未配置 DeepSeek 服务端密钥");
-  }
-
   deepseekProvider ??= createOpenAI({
-    apiKey: environment.DEEPSEEK_API_KEY,
-    baseURL: environment.DEEPSEEK_BASE_URL,
+    apiKey,
+    baseURL: configuration.baseURL,
     name: "deepseek",
   });
-
-  const configuration: AIConfiguration = {
-    baseURL: environment.DEEPSEEK_BASE_URL,
-    label: "DeepSeek",
-    maxOutputTokens: environment.AI_MAX_OUTPUT_TOKENS,
-    modelId: environment.DEEPSEEK_MODEL,
-    providerId: "deepseek",
-    requestTimeoutMs: environment.AI_REQUEST_TIMEOUT_MS,
-    temperature: 0.7,
-  };
 
   return {
     configuration,
@@ -229,30 +218,6 @@ export function recordModelError(
     name: error instanceof Error ? error.name : typeof error,
     providerId,
   });
-}
-
-export async function recordModelCompletion(input: {
-  finishReason?: string;
-  modelId: string;
-  providerId: ChatProviderId;
-  requestId: string;
-  usage?: unknown;
-}) {
-  const entry: ModelCompletionLog = {
-    createdAt: new Date().toISOString(),
-    finishReason: input.finishReason,
-    modelId: input.modelId,
-    providerId: input.providerId,
-    requestId: input.requestId,
-    usage: toJsonSafeValue(input.usage),
-  };
-
-  try {
-    // 企业重点：本地审计日志只记录可观测字段，不记录 Prompt、客户正文、Authorization 或 API Key。
-    await appendModelCompletionLog(entry);
-  } catch (error) {
-    recordModelError(input.providerId, error);
-  }
 }
 
 export function createModelErrorMessage(error: unknown) {

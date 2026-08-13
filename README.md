@@ -4,9 +4,9 @@
 
 ## 当前进度
 
-- 当前课程：第 8 天。
-- 当前知识点：DeepSeek Chat Completions 真实接入。
-- 当前代码：前三天代码保持稳定；工单列表默认使用学习演示种子数据，真实工单 API 不可用时自动降级；客服回复建议使用 AI SDK UI Message Stream、`useChat`、安全 Markdown 渲染和 DeepSeek OpenAI-compatible Provider Adapter。
+- 当前课程：第 9 天。
+- 当前知识点：多 Provider Adapter 与 Kimi 切换治理。
+- 当前代码：前三天代码保持稳定；工单列表默认使用学习演示种子数据，真实工单 API 不可用时自动降级；客服回复建议使用 AI SDK UI Message Stream、`useChat`、安全 Markdown 渲染、DeepSeek/Kimi OpenAI-compatible Provider Adapter、非敏感模型状态展示和本地学习审计日志。
 
 ## 权威文档
 
@@ -19,6 +19,7 @@
 - [第 6 天：useChat 状态、停止和重新生成](./docs/Day06useChat状态停止和重新生成.md)
 - [第 7 天：流式 Markdown 渲染与消息性能](./docs/Day07流式Markdown渲染与消息性能.md)
 - [第 8 天：DeepSeek Chat Completions 真实接入](./docs/Day08DeepSeekChatCompletions真实接入.md)
+- [第 9 天：多 Provider Adapter 与 Kimi 切换治理](./docs/Day09多ProviderAdapter与Kimi切换治理.md)
 
 后续课程、代码、练习和面试准备均以新项目内的课程执行规范为准。旧项目只保留为历史学习记录，不再作为新课程代码基础。
 
@@ -70,7 +71,7 @@ pnpm dev
 项目启动端口固定为：
 
 ```txt
-http://localhost:5000
+http://localhost:4000
 ```
 
 按照课程约束，不默认执行构建、启动开发服务或 Git 操作。
