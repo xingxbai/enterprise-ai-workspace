@@ -64,6 +64,40 @@ TextStreamPart.error      -> error
 
 前端不直接理解模型厂商协议，也不直接理解 AI SDK 内部所有 part，只理解业务稳定事件。
 
+### AI SDK 调用顺序与企业场景
+
+当前功能的 AI 调用链路如下：
+
+```txt
+getChatModel()
+  -> createOpenAI({ apiKey, baseURL, name })
+  -> provider.chat(modelId)
+  -> streamText({ model, system, prompt, abortSignal, timeout })
+  -> result.stream
+  -> 转换成 NDJSON 业务事件流
+  -> 前端 fetch + reader.read() 消费
+```
+
+| 顺序 | 函数或对象 | 所属分层 | 作用 | 企业开发场景 |
+|---|---|---|---|---|
+| 1 | `createOpenAI(...)` | Provider Adapter | 创建 OpenAI-compatible 厂商适配器 | 统一接入 DeepSeek、Kimi 等兼容 Chat Completions 的模型厂商，隐藏 API Key 和 Base URL |
+| 2 | `provider.chat(modelId)` | Provider Adapter | 得到 AI SDK 可调用的 Chat 模型对象 | 业务服务只接收模型对象，不直接关心厂商地址、密钥和模型初始化细节 |
+| 3 | `streamText(...)` | AI 应用服务 | 调用模型并返回流式生成结果 | 客服回复建议、工单摘要、问题归类等需要边生成边展示的 AI 功能 |
+| 4 | `result.stream` | AI 应用服务到 BFF 协议层 | 提供 AI SDK 结构化流事件，例如 `text-delta`、`finish`、`abort`、`error` | 服务端继续转换为稳定业务协议，避免前端依赖 AI SDK 内部事件格式 |
+| 5 | `TextStreamPart<ToolSet>` | TypeScript 类型约束 | 描述 AI SDK 流里每个 part 的类型 | 后续接入 Tool Calling、RAG 引用和 usage 统计时，降低漏处理状态的风险 |
+
+当前响应头是：
+
+```txt
+Content-Type: application/x-ndjson; charset=utf-8
+```
+
+因此当前走的是 NDJSON 事件流，不是标准 `text/event-stream` SSE。浏览器 Network 面板不一定显示 SSE/EventStream 视图，调试时应优先看响应头、状态码和每行 JSON 事件。
+
+面试表达：
+
+> 我们把 AI SDK 放在服务端应用服务里使用，通过 `createOpenAI` 和 `provider.chat(modelId)` 屏蔽 DeepSeek、Kimi 的兼容接口差异，再用 `streamText` 获取结构化流。BFF 不直接把 AI SDK 原始流暴露给浏览器，而是转换成 NDJSON 业务事件协议，用来表达开始、增量、完成、失败和取消，并为审计、成本统计和采纳反馈预留字段。
+
 ## 企业最佳实践
 
 - 协议字段要少而稳定，先服务业务状态，不追求一次设计完所有未来功能。

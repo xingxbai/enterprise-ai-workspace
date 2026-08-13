@@ -97,7 +97,6 @@ export function createReplySuggestionStreamResponse(input: {
           controller.close();
           return;
         }
-        console.log("value", JSON.stringify(value, null, 2) );
         if (value.type === "text-delta" && value.text) {
           controller.enqueue(
             encodeReplySuggestionEvent({
