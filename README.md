@@ -4,9 +4,9 @@
 
 ## 当前进度
 
-- 当前课程：第 6 天。
-- 当前知识点：`useChat` 状态、停止和重新生成。
-- 当前代码：前三天代码保持稳定；工单列表默认使用学习演示种子数据，真实工单 API 不可用时自动降级；客服回复建议升级为 AI SDK UI Message Stream，并用 `useChat` 处理提交、流式生成、停止、重新生成和错误状态。
+- 当前课程：第 7 天。
+- 当前知识点：流式 Markdown 渲染与消息性能。
+- 当前代码：前三天代码保持稳定；工单列表默认使用学习演示种子数据，真实工单 API 不可用时自动降级；客服回复建议使用 AI SDK UI Message Stream、`useChat` 状态管理、流式 Markdown 渲染和节流更新。
 
 ## 权威文档
 
@@ -17,6 +17,7 @@
 - [第 4 天：企业 AI 回复建议 Streaming 成熟方案](./docs/Day04企业AI回复建议Streaming成熟方案.md)
 - [第 5 天：企业 AI 回复建议的消息协议与状态管理](./docs/Day05企业AI回复建议的消息协议与状态管理.md)
 - [第 6 天：useChat 状态、停止和重新生成](./docs/Day06useChat状态停止和重新生成.md)
+- [第 7 天：流式 Markdown 渲染与消息性能](./docs/Day07流式Markdown渲染与消息性能.md)
 
 后续课程、代码、练习和面试准备均以新项目内的课程执行规范为准。旧项目只保留为历史学习记录，不再作为新课程代码基础。
 
@@ -35,6 +36,8 @@
 
 - `next`：应用框架，使用 App Router、Server Component、Client Component 和 Route Handler。
 - `react` / `react-dom`：React 19 组件和渲染运行时。
+- `react-markdown`：Markdown 渲染组件，用于把模型输出的结构化回复渲染为安全可读的业务内容。
+- `remark-gfm`：GitHub Flavored Markdown 插件，用于支持表格、任务列表等企业回复中常见的 Markdown 语法。
 - `ai`：Vercel AI SDK 核心包，提供 `streamText`、`generateText`、消息流和模型调用抽象。
 - `@ai-sdk/react`：Vercel AI SDK 的 React UI 包，提供 `useChat` 等成熟 hook，用于管理消息、状态、停止和重新生成。
 - `@ai-sdk/openai`：Vercel AI SDK 的 OpenAI Provider 包，本项目用于接入 DeepSeek 和 Kimi 的 OpenAI-compatible Chat Completions。

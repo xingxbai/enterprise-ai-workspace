@@ -30,7 +30,15 @@ function createReplySuggestionPrompt(input: {
   updatedAt: string;
 }) {
   return [
-    "请基于下面的工单摘要生成一段客服回复建议。",
+    "请基于下面的工单摘要生成一段客服回复建议，使用 Markdown 输出。",
+    "",
+    "输出格式：",
+    "### 问题摘要",
+    "- 用 1 条要点概括客户问题",
+    "### 建议回复",
+    "- 给出一段可直接发送给客户的回复",
+    "### 后续动作",
+    "- 列出 1 到 2 个客服需要继续确认的动作",
     "",
     `工单编号：${input.ticketId}`,
     `客户：${input.customerName}`,
@@ -91,7 +99,7 @@ export async function createReplySuggestionChatResponse({
       updatedAt: ticket.updatedAt,
     }),
     system:
-      "你是企业客服助手，只能基于已给出的工单信息生成客服回复建议。信息不足时要明确说明需要补充上下文，不得编造客户问题、订单信息或处理结果。",
+      "你是企业客服助手，只能基于已给出的工单信息生成客服回复建议。信息不足时要明确说明需要补充上下文，不得编造客户问题、订单信息或处理结果。回复必须使用简洁 Markdown，不要输出 HTML。",
     temperature: configuration.temperature,
     timeout: {
       totalMs: configuration.requestTimeoutMs,
@@ -102,7 +110,9 @@ export async function createReplySuggestionChatResponse({
     stream: result.stream,
     // 企业重点：前端只拿到本次请求追踪 ID；Provider、模型名和 Prompt 留在服务端日志与审计链路。
     messageMetadata: ({ part }) =>
-      part.type === "start" || part.type === "finish" ? { requestId } : undefined,
+      part.type === "start" || part.type === "finish"
+        ? { requestId }
+        : undefined,
     onError: () => "模型服务暂时不可用，请稍后重试",
     originalMessages: validatedMessages.data,
     sendReasoning: false,

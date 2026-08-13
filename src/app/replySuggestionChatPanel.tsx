@@ -3,6 +3,8 @@
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 
+import StreamingMarkdown from "./streamingMarkdown";
+
 type ReplySuggestionChatPanelProps = {
   ticketId: string;
 };
@@ -23,7 +25,7 @@ export default function ReplySuggestionChatPanel({
       const { messageId, messages, trigger } = request;
       return {
         body: {
-          // ticketId,
+          ticketId,
           messageId,
           messages,
           trigger,
@@ -44,6 +46,8 @@ export default function ReplySuggestionChatPanel({
   } = useChat({
     id: "reply-suggestion-chat-panel-" + ticketId,
     transport,
+    // 企业重点：流式文本会频繁到达，节流可以减少 Markdown 解析和 React 重渲染压力。
+    throttle: 80,
   });
   const isGenerating = status === "submitted" || status === "streaming";
   const latestAssistantMessage = [...messages]
@@ -124,9 +128,9 @@ export default function ReplySuggestionChatPanel({
       </p>
 
       {latestSuggestion ? (
-        <p className="mt-2 max-w-md text-xs leading-5 text-zinc-700">
-          {latestSuggestion}
-        </p>
+        <div className="mt-3 max-w-md rounded-md bg-white/70 p-3 text-xs leading-5 text-zinc-700">
+          <StreamingMarkdown content={latestSuggestion} />
+        </div>
       ) : null}
       {error ? (
         <p className="mt-2 text-xs leading-5 text-red-600">
