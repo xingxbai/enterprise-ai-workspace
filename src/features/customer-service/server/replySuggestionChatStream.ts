@@ -12,6 +12,7 @@ import { getTicketSummaryById } from "@/data/tickets";
 import {
   getChatModel,
   ModelConfigurationError,
+  recordModelCompletion,
   recordModelError,
 } from "@/features/ai/server/chatProvider";
 
@@ -89,6 +90,15 @@ export async function createReplySuggestionChatResponse({
     model,
     onError: ({ error }) => {
       recordModelError(configuration.providerId, error);
+    },
+    onFinish: ({ finishReason, totalUsage }) => {
+      void recordModelCompletion({
+        finishReason,
+        modelId: configuration.modelId,
+        providerId: configuration.providerId,
+        requestId,
+        usage: totalUsage,
+      });
     },
     prompt: createReplySuggestionPrompt({
       customerName: ticket.customerName,

@@ -1,5 +1,8 @@
 import "server-only";
 
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import path from "node:path";
+
 import { createOpenAI, type OpenAIProvider } from "@ai-sdk/openai";
 import { z } from "zod";
 
@@ -8,6 +11,8 @@ export const chatProviderIdSchema = z.enum(["deepseek", "kimi"]);
 export type ChatProviderId = z.infer<typeof chatProviderIdSchema>;
 
 export type AIConfiguration = {
+  baseURL: string;
+  label: string;
   maxOutputTokens: number;
   modelId: string;
   providerId: ChatProviderId;
@@ -42,6 +47,69 @@ export class ModelConfigurationError extends Error {
 let deepseekProvider: OpenAIProvider | undefined;
 let kimiProvider: OpenAIProvider | undefined;
 
+type ModelCompletionLog = {
+  createdAt: string;
+  finishReason?: string;
+  modelId: string;
+  providerId: ChatProviderId;
+  requestId: string;
+  usage?: unknown;
+};
+
+function hasServerSecret(value: string | undefined) {
+  return Boolean(value && value.trim() && !value.includes("请填写"));
+}
+
+function createShanghaiMonthDay(date: Date) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    day: "2-digit",
+    month: "2-digit",
+    timeZone: "Asia/Shanghai",
+  }).formatToParts(date);
+  const month = parts.find((part) => part.type === "month")?.value ?? "00";
+  const day = parts.find((part) => part.type === "day")?.value ?? "00";
+
+  return `${month}-${day}`;
+}
+
+function toJsonSafeValue(value: unknown) {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  try {
+    return JSON.parse(JSON.stringify(value)) as unknown;
+  } catch {
+    return undefined;
+  }
+}
+
+async function readCompletionLogs(filePath: string) {
+  try {
+    const content = await readFile(filePath, "utf8");
+    const parsedValue = JSON.parse(content) as unknown;
+
+    return Array.isArray(parsedValue) ? parsedValue : [];
+  } catch {
+    return [];
+  }
+}
+
+async function appendModelCompletionLog(entry: ModelCompletionLog) {
+  const logsDirectory = path.join(process.cwd(), "logs");
+  const filePath = path.join(
+    logsDirectory,
+    `${createShanghaiMonthDay(new Date(entry.createdAt))}.json`,
+  );
+
+  await mkdir(logsDirectory, { recursive: true });
+
+  const existingLogs = await readCompletionLogs(filePath);
+  existingLogs.push(entry);
+
+  await writeFile(filePath, `${JSON.stringify(existingLogs, null, 2)}\n`);
+}
+
 function parseAIEnvironment() {
   const parsedEnvironment = aiEnvironmentSchema.safeParse(process.env);
 
@@ -60,11 +128,36 @@ function parseAIEnvironment() {
   return parsedEnvironment.data;
 }
 
+export function getChatProviderStatus() {
+  const environment = parseAIEnvironment();
+  const providerId = environment.AI_CHAT_PROVIDER;
+  const isDeepSeek = providerId === "deepseek";
+  const apiKey = isDeepSeek
+    ? environment.DEEPSEEK_API_KEY
+    : environment.KIMI_API_KEY;
+  const baseURL = isDeepSeek
+    ? environment.DEEPSEEK_BASE_URL
+    : environment.KIMI_BASE_URL;
+  const modelId = isDeepSeek
+    ? environment.DEEPSEEK_MODEL
+    : environment.KIMI_MODEL;
+
+  return {
+    baseURLHost: new URL(baseURL).host,
+    isConfigured: hasServerSecret(apiKey),
+    label: isDeepSeek ? "DeepSeek" : "Kimi",
+    maxOutputTokens: environment.AI_MAX_OUTPUT_TOKENS,
+    modelId,
+    providerId,
+    requestTimeoutMs: environment.AI_REQUEST_TIMEOUT_MS,
+  };
+}
+
 export function getChatModel() {
   const environment = parseAIEnvironment();
 
   if (environment.AI_CHAT_PROVIDER === "kimi") {
-    if (!environment.KIMI_API_KEY) {
+    if (!hasServerSecret(environment.KIMI_API_KEY)) {
       throw new ModelConfigurationError("未配置 Kimi 服务端密钥");
     }
 
@@ -75,6 +168,8 @@ export function getChatModel() {
     });
 
     const configuration: AIConfiguration = {
+      baseURL: environment.KIMI_BASE_URL,
+      label: "Kimi",
       maxOutputTokens: environment.AI_MAX_OUTPUT_TOKENS,
       modelId: environment.KIMI_MODEL,
       providerId: "kimi",
@@ -90,7 +185,7 @@ export function getChatModel() {
     };
   }
 
-  if (!environment.DEEPSEEK_API_KEY) {
+  if (!hasServerSecret(environment.DEEPSEEK_API_KEY)) {
     throw new ModelConfigurationError("未配置 DeepSeek 服务端密钥");
   }
 
@@ -101,6 +196,8 @@ export function getChatModel() {
   });
 
   const configuration: AIConfiguration = {
+    baseURL: environment.DEEPSEEK_BASE_URL,
+    label: "DeepSeek",
     maxOutputTokens: environment.AI_MAX_OUTPUT_TOKENS,
     modelId: environment.DEEPSEEK_MODEL,
     providerId: "deepseek",
@@ -132,6 +229,30 @@ export function recordModelError(
     name: error instanceof Error ? error.name : typeof error,
     providerId,
   });
+}
+
+export async function recordModelCompletion(input: {
+  finishReason?: string;
+  modelId: string;
+  providerId: ChatProviderId;
+  requestId: string;
+  usage?: unknown;
+}) {
+  const entry: ModelCompletionLog = {
+    createdAt: new Date().toISOString(),
+    finishReason: input.finishReason,
+    modelId: input.modelId,
+    providerId: input.providerId,
+    requestId: input.requestId,
+    usage: toJsonSafeValue(input.usage),
+  };
+
+  try {
+    // 企业重点：本地审计日志只记录可观测字段，不记录 Prompt、客户正文、Authorization 或 API Key。
+    await appendModelCompletionLog(entry);
+  } catch (error) {
+    recordModelError(input.providerId, error);
+  }
 }
 
 export function createModelErrorMessage(error: unknown) {
