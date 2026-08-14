@@ -132,11 +132,15 @@ createBadRequestResponseFromZodError(error, fieldLabels, requestId)
 - `messageMetadata` 中继续把 requestId 返回给前端消息元数据。
 - `recordModelCompletion` 用同一个 requestId 写入本地审计日志。
 
-### 5. 老 NDJSON 接口也对齐
+### 5. 所有 BFF 使用同一错误契约
 
-`/api/ai/reply` 和 `createReplySuggestionStreamResponse` 同步带上 requestId，保证前面章节保留的自定义 NDJSON 流也能被追踪。
+`/api/ai/reply-chat` 和 `/api/tickets/approve` 都使用 `{ code, message, requestId }` 与 `x-request-id`。写入型审批接口不会使用演示数据假成功，并把浏览器取消和超时信号传给上游业务请求。
 
-### 6. 前端展示安全中文错误
+### 6. 删除被成熟方案替代的教学旧链路
+
+第一阶段收口时删除旧 `/api/ai/reply`、自定义 NDJSON 解析器、旧按钮和旧流服务。NDJSON保留在Day5作为协议选型与排障知识，不再占用主业务维护成本。
+
+### 7. 前端展示安全中文错误
 
 `src/app/replySuggestionChatPanel.tsx` 给 `DefaultChatTransport` 加了一个轻量 `fetch` 包装：
 
@@ -166,7 +170,7 @@ createBadRequestResponseFromZodError(error, fieldLabels, requestId)
 - BFF 入口第一步生成 requestId。
 - JSON 解析错误、Schema 校验错误、业务不存在、模型配置错误要分开编码。
 - 前端只能展示安全中文 message，不展示堆栈和上游原始错误。
-- 服务端日志只记录 requestId、错误码和脱敏 message，不记录请求体、Prompt、Authorization 或 API Key。
+- 服务端日志只记录 requestId、错误码、错误类型等白名单字段，不记录不可控的上游 message、请求体、Prompt、Authorization 或 API Key。
 - Route Handler 要把 `request.signal` 继续传给模型调用，保证用户停止生成时能取消上游请求。
 - `safeParse` 用于普通业务 DTO；`safeValidateUIMessages` 用于 AI SDK UI messages。
 - 对外错误响应保持稳定，内部实现可以继续演进。
@@ -250,7 +254,8 @@ requestId 应在 BFF 入口生成，然后贯穿业务查询、模型调用、�
 - `src/features/http/server/requestValidation.ts`：Zod 校验错误接入统一错误格式。
 - `src/app/api/ai/reply-chat/route.ts`：主 AI BFF 接入 requestId、JSON 错误和 Schema 错误边界。
 - `src/features/customer-service/server/replySuggestionChatStream.ts`：使用 BFF 传入的 requestId，并给 UI Message Stream 响应头写入 `x-request-id`。
-- `src/app/api/ai/reply/route.ts`、`src/features/customer-service/server/replySuggestionStream.ts`、`src/features/customer-service/replySuggestionProtocol.ts`：老 NDJSON 接口同步 requestId 规范。
+- `src/app/api/tickets/approve/route.ts`：写入型BFF接入相同错误契约、超时、取消和上游错误分类。
+- `src/data/ticketContracts.ts`：使用Zod校验外部工单DTO并限制演示数据环境边界。
 - `src/app/replySuggestionChatPanel.tsx`：前端展示 BFF 返回的安全中文错误。
 - `README.md`：更新当前课程和文档入口。
 
@@ -261,6 +266,7 @@ requestId 应在 BFF 入口生成，然后贯穿业务查询、模型调用、�
 3. 阅读 `src/app/api/ai/reply-chat/route.ts`，理解 BFF 入口职责。
 4. 阅读 `src/features/customer-service/server/replySuggestionChatStream.ts`，理解 requestId 如何进入模型调用和审计。
 5. 阅读 `src/app/replySuggestionChatPanel.tsx`，理解前端如何展示安全错误。
+6. 按异常场景手动调用审批接口，确认写入失败不会假成功，并核对错误码和requestId。
 
 ### 验证方式
 
@@ -278,6 +284,8 @@ pnpm lint
 - 工单不存在：返回 `NOT_FOUND`。
 - 未配置当前 Provider 密钥：返回 `MODEL_CONFIGURATION_ERROR`。
 - 模型服务异常：流内返回安全错误，或 BFF 返回 `MODEL_SERVICE_UNAVAILABLE`。
+- 生产环境工单API不可用：返回空状态，不降级到学习演示数据。
+- 未配置真实审批接口：返回 `BUSINESS_API_CONFIGURATION_ERROR`，不假成功。
 
 ## 官方文档
 
@@ -289,7 +297,7 @@ pnpm lint
 
 ## 延伸阅读
 
-下一阶段建议进入服务端 Session 与可信身份。现在 BFF 已经有统一请求边界，后续可以在这个边界上增加登录态、租户、RBAC 和资源级权限。
+下一阶段进入服务端 Session 与可信身份。当前只完成了公开BFF的请求与错误边界，尚未完成登录态、租户、RBAC和资源级权限，不能视为生产可用安全链路。
 
 ## 企业级练习与验收标准
 
@@ -302,3 +310,4 @@ pnpm lint
 - 前端不会显示 Zod 英文错误。
 - 服务端日志不包含请求体、Prompt、Authorization 或 API Key。
 - 成功生成后的审计日志 requestId 与 BFF requestId 一致。
+- 手动验证生产环境禁止Demo降级、审批写入不假成功和统一错误契约。

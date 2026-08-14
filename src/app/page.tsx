@@ -27,7 +27,7 @@ export default async function Home() {
           <div>
             <h1 className="text-2xl font-semibold">客服工单</h1>
             <p className="mt-2 text-sm text-zinc-600">
-              查看当前租户内需要跟进的客户问题。
+              查看需要跟进的客户问题；开发环境可以使用明确标注的演示数据。
             </p>
           </div>
           <p className="shrink-0 text-sm text-zinc-500">

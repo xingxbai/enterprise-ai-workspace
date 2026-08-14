@@ -6,13 +6,18 @@ type ApproveButtonProps = {
   ticketId: string;
 };
 
+type ApprovalFeedback = {
+  isError: boolean;
+  message: string;
+};
+
 export default function ApproveButton({ ticketId }: ApproveButtonProps) {
-  const [message, setMessage] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<ApprovalFeedback | null>(null);
   const [isPending, setIsPending] = useState(false);
 
   async function approveTicket() {
     setIsPending(true);
-    setMessage(null);
+    setFeedback(null);
 
     try {
       const response = await fetch("/api/tickets/approve", {
@@ -24,9 +29,14 @@ export default function ApproveButton({ ticketId }: ApproveButtonProps) {
       });
       const payload = (await response.json()) as { message?: string };
 
-      setMessage(payload.message ?? "审批请求已提交");
+      setFeedback({
+        isError: !response.ok,
+        message:
+          payload.message ??
+          (response.ok ? "审批请求已提交" : "工单审批失败，请稍后重试"),
+      });
     } catch {
-      setMessage("审批请求发送失败");
+      setFeedback({ isError: true, message: "审批请求发送失败" });
     } finally {
       setIsPending(false);
     }
@@ -42,8 +52,14 @@ export default function ApproveButton({ ticketId }: ApproveButtonProps) {
       >
         {isPending ? "审批中" : "审批"}
       </button>
-      {message ? (
-        <span className="text-xs text-zinc-500">{message}</span>
+      {feedback ? (
+        <span
+          className={
+            feedback.isError ? "text-xs text-red-600" : "text-xs text-zinc-500"
+          }
+        >
+          {feedback.message}
+        </span>
       ) : null}
     </span>
   );

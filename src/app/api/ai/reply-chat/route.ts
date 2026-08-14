@@ -16,7 +16,13 @@ const replySuggestionChatPayloadSchema = z
     trigger: z.enum(["submit-message", "regenerate-message"]).optional(),
   })
   .strict();
-
+const replaySchema = z.object({
+  name: z.string(),
+  age: z.number(),
+  info: z.object().nullable(),
+  tickedId: z.string().trim().min(1, "ticketId 不能为空"),
+  trigger: z.enum(["submit", "regenerate"]).optional(),
+})
 export async function POST(request: Request) {
   const requestId = createRequestId();
   let body: unknown;

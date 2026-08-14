@@ -12,7 +12,7 @@
 
 ## 为什么会出现
 
-第 5 天我们自己定义了 NDJSON 事件协议，前端手动读取 `ReadableStream` 并维护状态机。这种方式适合理解协议边界，但当功能升级到多轮消息、重新生成、工具调用、恢复流和更复杂的 UI 状态时，继续手写会越来越重。
+第 5 天对比了NDJSON、SSE和UI Message Stream。自定义协议适合固定第三方契约或特殊任务事件，但客服多轮消息、重新生成、工具调用和恢复流优先使用成熟的`useChat`与UI Message Stream。
 
 企业项目更常见的做法是：
 
@@ -51,11 +51,11 @@
   -> useChat 更新 messages/status/error
 ```
 
-这和第 5 天不同：
+协议选择结论：
 
 ```txt
-Day05：自定义 NDJSON 事件流，Content-Type 是 application/x-ndjson
-Day06：AI SDK UI Message Stream，Content-Type 是 text/event-stream
+自定义NDJSON：只用于明确需要独立业务事件协议的场景
+当前主线：AI SDK UI Message Stream，Content-Type 是 text/event-stream
 ```
 
 ## 底层原理
@@ -206,7 +206,7 @@ Zod 校验业务请求体，例如 `ticketId` 是否存在、字段是否多传�
 2. 阅读 `src/app/api/ai/reply-chat/route.ts`，确认 BFF 只接收 `ticketId` 和 UI messages。
 3. 阅读 `src/features/http/server/requestValidation.ts`，理解 Zod 原始错误如何转换成稳定中文错误。
 4. 阅读 `src/features/customer-service/server/replySuggestionChatStream.ts`，理解 `safeValidateUIMessages`、`streamText`、`toUIMessageStream` 和 `createUIMessageStreamResponse`。
-5. 对照第 5 天的 `src/features/customer-service/replySuggestionProtocol.ts`，区分 NDJSON 和 UI Message Stream。
+5. 对照第5天的协议选型结论，说明为什么当前不再维护自定义NDJSON解析器。
 
 ### 验证方式
 

@@ -202,7 +202,7 @@ pnpm lint
 
 ## 延伸阅读
 
-下一章学习 ReadableStream、背压和文本编解码，为 AI Streaming、SSE 和模型响应逐字输出打基础。
+下一章直接使用 AI SDK 的成熟 Streaming 方案。`ReadableStream`、背压和文本编解码只用于理解底层、Network 排障和面试追问，不再单独维护原生业务实现。
 
 ## 企业级练习与验收标准
 

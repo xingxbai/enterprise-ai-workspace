@@ -32,14 +32,15 @@
 本章项目链路：
 
 ```txt
-ReplySuggestionButton
-  -> POST /api/ai/reply
+ReplySuggestionChatPanel
+  -> useChat + DefaultChatTransport
+  -> POST /api/ai/reply-chat
   -> Route Handler 用 Zod 校验 ticketId
   -> Customer Service 组装客服回复建议 Prompt
   -> Provider Adapter 选择 DeepSeek/Kimi
   -> AI SDK streamText
-  -> toTextStreamResponse
-  -> 前端增量展示
+  -> AI SDK UI Message Stream
+  -> useChat 增量展示
 ```
 
 面试时不要说“我手写了 ReadableStream”。更好的说法是：
@@ -142,11 +143,11 @@ system prompt 是服务端资产，不能由客户端传入。后续应进入 Pr
 
 ### 9. streamText
 
-`streamText` 返回 AI SDK 的流式结果对象，可以转换成文本流响应，也可以在后续课程升级为 UI message stream。文本流适合本章先打通回复建议，UI message stream 更适合复杂聊天状态、工具事件和用量元数据。
+`streamText` 返回 AI SDK 的流式结果对象。本项目直接转换为 UI Message Stream，由 `useChat` 消费；裸文本流和原生 Web Stream 只保留为协议理解与排障知识，不再作为可运行的第二套业务链路。
 
 ### 10. 后续扩展
 
-第 5 天会把纯文本流升级为 SSE 或 AI SDK UI Message 协议；后续再加入 Prompt Service、真实工单上下文、权限、审计、成本统计和采纳反馈。
+第 5 天会对比裸文本、NDJSON、SSE 和 AI SDK UI Message Stream 的适用边界，后续再加入 Prompt Service、真实工单上下文、权限、审计、成本统计和采纳反馈。
 
 ## 项目实践
 
@@ -156,18 +157,18 @@ system prompt 是服务端资产，不能由客户端传入。后续应进入 Pr
 
 ### 改动范围
 
-- `src/app/replySuggestionButton.tsx`：客户端交互入口，负责发起请求、展示增量文本、停止生成。
-- `src/app/api/ai/reply/route.ts`：Route Handler，使用 Zod 校验请求。
-- `src/features/customer-service/server/replySuggestionStream.ts`：客服回复建议应用服务，调用 AI SDK `streamText`。
+- `src/app/replySuggestionChatPanel.tsx`：客户端交互入口，通过 `useChat` 管理流式消息和停止生成。
+- `src/app/api/ai/reply-chat/route.ts`：Route Handler，使用 Zod 校验请求。
+- `src/features/customer-service/server/replySuggestionChatStream.ts`：客服回复建议应用服务，调用 AI SDK `streamText` 并返回 UI Message Stream。
 - `src/features/ai/server/chatProvider.ts`：Provider Adapter，封装 DeepSeek/Kimi 配置和错误脱敏。
 - `.env.example`：真实模型服务端配置示例。
 
 ### 代码阅读顺序
 
 1. 阅读 `src/app/page.tsx`，确认只把 `ticketId` 传给客户端按钮。
-2. 阅读 `src/app/replySuggestionButton.tsx`，理解前端状态、取消和增量展示。
-3. 阅读 `src/app/api/ai/reply/route.ts`，确认 Zod 校验和 BFF 边界。
-4. 阅读 `src/features/customer-service/server/replySuggestionStream.ts`，确认 AI SDK `streamText` 的调用方式。
+2. 阅读 `src/app/replySuggestionChatPanel.tsx`，理解前端状态、取消和增量展示。
+3. 阅读 `src/app/api/ai/reply-chat/route.ts`，确认 Zod 校验和 BFF 边界。
+4. 阅读 `src/features/customer-service/server/replySuggestionChatStream.ts`，确认 AI SDK `streamText` 和 UI Message Stream 的调用方式。
 5. 阅读 `src/features/ai/server/chatProvider.ts`，确认密钥和厂商差异只在服务端。
 
 ### 验证方式

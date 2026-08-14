@@ -191,7 +191,7 @@ pnpm typecheck
 pnpm lint
 ```
 
-本章不默认启动服务、不真实调用 DeepSeek、不操作浏览器。
+完成本章时应使用个人服务端密钥做一次受控 smoke 验证，确认首个流事件、完成状态、requestId 和 usage；不得把真实密钥或客户正文写入演示数据。
 
 ### 异常场景
 

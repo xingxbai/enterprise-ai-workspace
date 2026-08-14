@@ -1,13 +1,12 @@
 import "server-only";
 
-export type TicketSummary = {
-  id: string;
-  subject: string;
-  customerName: string;
-  status: "待处理" | "处理中" | "已解决";
-  priority: "低" | "中" | "高";
-  updatedAt: string;
-};
+import {
+  canUseDemoTicketFixtures,
+  parseTicketSummaries,
+  type TicketSummary,
+} from "@/data/ticketContracts";
+
+export type { TicketSummary } from "@/data/ticketContracts";
 
 const demoTicketSummaries = [
   {
@@ -67,7 +66,11 @@ function getTicketsApiBaseUrl() {
     return null;
   }
 
-  return new URL(baseUrl);
+  try {
+    return new URL(baseUrl);
+  } catch {
+    return null;
+  }
 }
 
 export function createTicketsApiUrl(path: string) {
@@ -97,19 +100,39 @@ export function getBusinessApiHeaders() {
   return headers;
 }
 
-function recordTicketApiFallback(reason: unknown) {
-  const details =
-    reason instanceof Error
-      ? {
-          message: reason.message.slice(0, 300),
-          name: reason.name,
-        }
-      : {
-          type: typeof reason,
-        };
+type TicketApiFailureKind =
+  | "authentication"
+  | "configuration"
+  | "network"
+  | "response"
+  | "validation";
 
-  // 企业重点：降级日志只记录错误类型，不记录 Authorization 或客户敏感正文。
-  console.error("工单 API 不可用，已降级为学习演示种子数据", details);
+function areDemoTicketFixturesEnabled(failureKind: TicketApiFailureKind) {
+  return canUseDemoTicketFixtures({
+    enabledFlag: process.env.ENABLE_DEMO_FIXTURES,
+    failureKind,
+    nodeEnv: process.env.NODE_ENV,
+  });
+}
+
+function recordTicketApiFailure(input: {
+  kind: TicketApiFailureKind;
+  status?: number;
+  usedDemoFixtures: boolean;
+}) {
+  // 企业重点：只记录白名单诊断字段，不记录上游错误正文、Authorization 或客户数据。
+  console.error("工单 API 读取失败", input);
+}
+
+function getFallbackTickets(
+  kind: TicketApiFailureKind,
+  status?: number,
+): readonly TicketSummary[] {
+  const usedDemoFixtures = areDemoTicketFixturesEnabled(kind);
+
+  recordTicketApiFailure({ kind, status, usedDemoFixtures });
+
+  return usedDemoFixtures ? demoTicketSummaries : [];
 }
 
 export async function getTicketSummaries(): Promise<
@@ -118,8 +141,7 @@ export async function getTicketSummaries(): Promise<
   const ticketsUrl = createTicketsApiUrl("tickets");
 
   if (!ticketsUrl) {
-    // 企业重点：这是学习和面试演示用种子数据，不冒充真实业务 API 已接入。
-    return demoTicketSummaries;
+    return getFallbackTickets("configuration");
   }
 
   let response: Response;
@@ -129,17 +151,33 @@ export async function getTicketSummaries(): Promise<
       cache: "no-store",
       headers: getBusinessApiHeaders(),
     });
-  } catch (error) {
-    recordTicketApiFallback(error);
-    return demoTicketSummaries;
+  } catch {
+    return getFallbackTickets("network");
   }
 
   if (!response.ok) {
-    recordTicketApiFallback(new Error(`工单 API 返回 ${response.status}`));
-    return demoTicketSummaries;
+    if (response.status === 401 || response.status === 403) {
+      return getFallbackTickets("authentication", response.status);
+    }
+
+    return getFallbackTickets("response", response.status);
   }
 
-  return (await response.json()) as readonly TicketSummary[];
+  let responseBody: unknown;
+
+  try {
+    responseBody = await response.json();
+  } catch {
+    return getFallbackTickets("validation");
+  }
+
+  const parsedTickets = parseTicketSummaries(responseBody);
+
+  if (!parsedTickets.success) {
+    return getFallbackTickets("validation");
+  }
+
+  return parsedTickets.data;
 }
 
 export async function getTicketSummaryById(ticketId: string) {

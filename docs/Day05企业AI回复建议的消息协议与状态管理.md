@@ -1,4 +1,4 @@
-# 第 5 天：企业 AI 回复建议的消息协议与状态管理
+# 第 5 天：企业 AI 消息协议选型与状态建模
 
 掌握级别：必须精通
 
@@ -8,7 +8,7 @@
 
 ## 一句话理解
 
-企业 AI Streaming 不应该只返回裸文本，而应该有稳定消息协议，让前端明确区分开始、增量、完成、失败和取消状态。
+企业 AI Streaming 需要根据业务复杂度选择稳定协议；当前项目使用 AI SDK UI Message Stream，NDJSON 和原生流只用于理解状态建模、兼容场景和排障。
 
 ## 为什么会出现
 
@@ -37,7 +37,7 @@
 
 ## 企业每天怎么使用
 
-本章使用轻量 NDJSON 事件协议：
+协议设计至少要能表达以下生命周期：
 
 ```txt
 start  -> 本次生成开始，携带 requestId、ticketId、providerId、modelId
@@ -47,7 +47,7 @@ error  -> 服务端或模型失败，返回脱敏错误
 aborted -> 用户取消生成
 ```
 
-这不是手写厂商 SSE parser。模型侧 streaming 仍由 AI SDK `streamText` 负责；本章只是在 BFF 层把 AI SDK 的高层 stream part 转换成业务可消费的事件协议。
+NDJSON可以表达这些事件，但当前客服主线不再为它维护独立编码器和前端解析器。模型侧和UI侧统一采用AI SDK成熟协议，减少两套实现的维护成本。
 
 ## 底层原理
 
@@ -69,13 +69,16 @@ TextStreamPart.error      -> error
 当前功能的 AI 调用链路如下：
 
 ```txt
-getChatModel()
+useChat()
+  -> DefaultChatTransport
+  -> /api/ai/reply-chat
+  -> getChatModel()
   -> createOpenAI({ apiKey, baseURL, name })
   -> provider.chat(modelId)
   -> streamText({ model, system, prompt, abortSignal, timeout })
-  -> result.stream
-  -> 转换成 NDJSON 业务事件流
-  -> 前端 fetch + reader.read() 消费
+  -> toUIMessageStream
+  -> createUIMessageStreamResponse
+  -> useChat 消费
 ```
 
 | 顺序 | 函数或对象 | 所属分层 | 作用 | 企业开发场景 |
@@ -86,27 +89,27 @@ getChatModel()
 | 4 | `result.stream` | AI 应用服务到 BFF 协议层 | 提供 AI SDK 结构化流事件，例如 `text-delta`、`finish`、`abort`、`error` | 服务端继续转换为稳定业务协议，避免前端依赖 AI SDK 内部事件格式 |
 | 5 | `TextStreamPart<ToolSet>` | TypeScript 类型约束 | 描述 AI SDK 流里每个 part 的类型 | 后续接入 Tool Calling、RAG 引用和 usage 统计时，降低漏处理状态的风险 |
 
-当前响应头是：
+当前主链响应头是：
 
 ```txt
-Content-Type: application/x-ndjson; charset=utf-8
+Content-Type: text/event-stream
 ```
 
-因此当前走的是 NDJSON 事件流，不是标准 `text/event-stream` SSE。浏览器 Network 面板不一定显示 SSE/EventStream 视图，调试时应优先看响应头、状态码和每行 JSON 事件。
+排查时先看 `Content-Type`：`application/x-ndjson` 表示逐行 JSON，`text/event-stream` 表示 SSE。当前 `/api/ai/reply-chat` 使用AI SDK UI Message Stream，Network中按SSE观察；只有对接明确要求NDJSON的第三方任务流时才单独实现NDJSON适配层。
 
 面试表达：
 
-> 我们把 AI SDK 放在服务端应用服务里使用，通过 `createOpenAI` 和 `provider.chat(modelId)` 屏蔽 DeepSeek、Kimi 的兼容接口差异，再用 `streamText` 获取结构化流。BFF 不直接把 AI SDK 原始流暴露给浏览器，而是转换成 NDJSON 业务事件协议，用来表达开始、增量、完成、失败和取消，并为审计、成本统计和采纳反馈预留字段。
+> 我们把 AI SDK 放在服务端应用服务里使用，通过 `createOpenAI` 和 `provider.chat(modelId)` 屏蔽 DeepSeek、Kimi 的差异，再用 `streamText` 获取结构化流，并转换为 `useChat` 能消费的 UI Message Stream。NDJSON只作为协议选型和排障知识，不在客服主线长期维护第二套解析器。
 
 ## 企业最佳实践
 
 - 协议字段要少而稳定，先服务业务状态，不追求一次设计完所有未来功能。
-- `requestId`、`providerId`、`modelId` 从第一天就进入协议，为审计和成本统计铺路。
+- `requestId`进入响应元数据；`providerId`、`modelId`和usage默认留在服务端审计，普通客服页面无业务需要时不返回。
 - 错误事件只返回用户可见文案，不返回堆栈、密钥、Prompt 或上游原始错误。
-- 前端状态机要区分 `idle`、`streaming`、`done`、`error`、`stopped`。
-- 用户取消应进入 stopped，不应误判为 done。
+- 前端使用`useChat`区分`submitted`、`streaming`、`ready`和`error`；业务统计另外区分完成、失败和用户取消。
+- 用户取消不应计入完整成功，也不应和模型故障混为一类。
 - 写入型业务动作不允许假成功；读取型展示可以降级但要记录脱敏日志。
-- 后续如果升级到 AI SDK UI Message Stream，当前协议概念仍可迁移。
+- AI SDK UI Message Stream负责通用消息生命周期，特殊业务事件再通过metadata、data part或独立适配层扩展。
 
 ## 常见错误
 
@@ -152,7 +155,7 @@ Content-Type: application/x-ndjson; charset=utf-8
 
 ### 2. 协议事件
 
-本章使用 `start`、`delta`、`finish`、`error`、`aborted` 五类事件。它们覆盖了客服回复建议生成的核心生命周期，并为后续元数据和审计留入口。
+无论底层选择SSE、NDJSON还是UI Message Stream，业务都要能识别开始、增量、完成、失败和取消。当前这些状态由AI SDK协议和`useChat`统一承载。
 
 ### 3. requestId
 
@@ -176,11 +179,11 @@ AI SDK 负责模型 streaming 和 Provider 抽象。本章协议是 BFF 对前�
 
 ### 8. 前端状态机
 
-前端至少区分 `idle`、`streaming`、`done`、`error`、`stopped`。生成中禁用重复生成，停止按钮只在 streaming 时出现。
+前端交互使用`useChat`的`submitted`、`streaming`、`ready`和`error`。完成、失败和用户取消属于业务结果维度，应在审计与效果统计中单独记录。
 
 ### 9. 升级路径
 
-当功能进入多轮聊天、消息列表、重新生成和工具调用时，适合升级到 AI SDK UI Message Stream 和 `useChat`。当前协议先服务客服回复建议这个较小场景。
+多轮消息、重新生成、工具调用和恢复流优先选择AI SDK UI Message Stream；只有第三方协议固定或事件类型明显超出UI Message能力时，才增加独立业务协议适配层。
 
 ### 10. 审计和反馈
 
@@ -190,22 +193,22 @@ AI SDK 负责模型 streaming 和 Provider 抽象。本章协议是 BFF 对前�
 
 ### 业务需求
 
-把客服回复建议从裸文本流升级为结构化消息协议，使前端能稳定处理生成中、完成、失败和取消。
+完成消息协议选型，确认客服回复建议统一使用AI SDK UI Message Stream，并能根据响应头和事件生命周期排查流式问题。
 
 ### 改动范围
 
-- `src/features/customer-service/replySuggestionProtocol.ts`：定义回复建议事件协议、服务端编码和客户端读取。
-- `src/features/customer-service/server/replySuggestionStream.ts`：把 AI SDK `streamText` 的 stream part 转成业务事件。
-- `src/app/replySuggestionButton.tsx`：按事件更新前端状态机。
+- `src/features/customer-service/server/replySuggestionChatStream.ts`：把 `streamText` 转换为 UI Message Stream。
+- `src/app/replySuggestionChatPanel.tsx`：通过 `useChat` 消费协议并管理状态。
+- 浏览器 Network：根据 `Content-Type`、状态码和事件内容定位流式问题。
 - `docs/Day05企业AI回复建议的消息协议与状态管理.md`：记录本章设计和面试表达。
 - `README.md`：更新当前课程和文档入口。
 
 ### 代码阅读顺序
 
-1. 阅读 `src/features/customer-service/replySuggestionProtocol.ts`，理解事件协议。
-2. 阅读 `src/features/customer-service/server/replySuggestionStream.ts`，理解 AI SDK part 到业务事件的转换。
-3. 阅读 `src/app/replySuggestionButton.tsx`，理解前端状态机。
-4. 阅读 `src/app/api/ai/reply/route.ts`，确认 BFF 校验边界不变。
+1. 阅读 `src/features/customer-service/server/replySuggestionChatStream.ts`，理解 UI Message Stream 转换。
+2. 阅读 `src/app/replySuggestionChatPanel.tsx`，理解 `useChat` 状态。
+3. 阅读 `src/app/api/ai/reply-chat/route.ts`，确认 BFF 校验边界。
+4. 对照文档说明SSE、NDJSON和UI Message Stream的选型差异，不再跟写原生解析器。
 
 ### 验证方式
 

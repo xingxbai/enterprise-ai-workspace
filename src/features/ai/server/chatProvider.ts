@@ -209,16 +209,8 @@ export function recordModelError(
   providerId: ChatProviderId | "unknown",
   error: unknown,
 ) {
-  const safeMessage =
-    error instanceof Error
-      ? error.message
-          .replace(/sk-[a-zA-Z0-9_-]+/g, "[密钥已隐藏]")
-          .slice(0, 500)
-      : undefined;
-
-  // 企业重点：日志可以记录厂商和错误类型，但不记录请求正文、Authorization 或 API Key。
+  // 企业重点：上游错误正文不可控，只记录白名单字段，避免正则脱敏遗漏密钥或客户数据。
   console.error("模型调用失败", {
-    message: safeMessage,
     name: error instanceof Error ? error.name : typeof error,
     providerId,
   });
