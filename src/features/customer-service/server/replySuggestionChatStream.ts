@@ -15,9 +15,15 @@ import {
   recordModelError,
 } from "@/features/ai/server/chatProvider";
 import { recordModelCompletion } from "@/features/ai/server/modelAuditLog";
+import {
+  createApiErrorResponse,
+  createApiResponseHeaders,
+  recordApiError,
+} from "@/features/http/server/apiResponse";
 
 type ReplySuggestionChatInput = {
   messages: unknown;
+  requestId: string;
   signal: AbortSignal;
   ticketId: string;
 };
@@ -52,6 +58,7 @@ function createReplySuggestionPrompt(input: {
 
 export async function createReplySuggestionChatResponse({
   messages,
+  requestId,
   signal,
   ticketId,
 }: ReplySuggestionChatInput) {
@@ -59,13 +66,23 @@ export async function createReplySuggestionChatResponse({
     messages,
   });
   if (!validatedMessages.success) {
-    return Response.json({ message: "消息格式不正确" }, { status: 400 });
+    return createApiErrorResponse({
+      code: "VALIDATION_ERROR",
+      message: "消息格式不正确",
+      requestId,
+      status: 400,
+    });
   }
 
   const ticket = await getTicketSummaryById(ticketId);
 
   if (!ticket) {
-    return Response.json({ message: "工单不存在" }, { status: 404 });
+    return createApiErrorResponse({
+      code: "NOT_FOUND",
+      message: "工单不存在",
+      requestId,
+      status: 404,
+    });
   }
 
   let modelConfiguration;
@@ -74,15 +91,34 @@ export async function createReplySuggestionChatResponse({
     modelConfiguration = getChatModel();
   } catch (error) {
     if (error instanceof ModelConfigurationError) {
-      return Response.json({ message: error.message }, { status: 503 });
+      recordApiError({
+        code: "MODEL_CONFIGURATION_ERROR",
+        error,
+        requestId,
+      });
+      return createApiErrorResponse({
+        code: "MODEL_CONFIGURATION_ERROR",
+        message: error.message,
+        requestId,
+        status: 503,
+      });
     }
 
+    recordApiError({
+      code: "MODEL_SERVICE_UNAVAILABLE",
+      error,
+      requestId,
+    });
     recordModelError("unknown", error);
-    return Response.json({ message: "模型服务暂时不可用" }, { status: 500 });
+    return createApiErrorResponse({
+      code: "MODEL_SERVICE_UNAVAILABLE",
+      message: "模型服务暂时不可用",
+      requestId,
+      status: 500,
+    });
   }
 
   const { configuration, model } = modelConfiguration;
-  const requestId = crypto.randomUUID();
   const result = streamText({
     abortSignal: signal,
     maxOutputTokens: configuration.maxOutputTokens,
@@ -131,6 +167,7 @@ export async function createReplySuggestionChatResponse({
 
   // 企业重点：AI SDK UI Message Stream 会返回 text/event-stream，方便 useChat 统一处理状态、停止和重新生成。
   return createUIMessageStreamResponse({
+    headers: createApiResponseHeaders(requestId),
     stream,
   });
 }

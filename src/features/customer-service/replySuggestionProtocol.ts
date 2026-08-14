@@ -148,7 +148,11 @@ export function createReplySuggestionStreamResponse(input: {
   });
 
   return new Response(stream, {
-    headers: replySuggestionStreamHeaders,
+    headers: {
+      ...replySuggestionStreamHeaders,
+      // 企业重点：自定义 NDJSON 流也带上 requestId，便于和 BFF 日志、模型日志关联。
+      "x-request-id": input.requestId,
+    },
   });
 }
 

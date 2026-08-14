@@ -265,7 +265,7 @@ Provider Adapter
 当前项目沿用的关键约定：
 
 - DeepSeek：`DEEPSEEK_API_KEY`、`DEEPSEEK_BASE_URL=https://api.deepseek.com`、`DEEPSEEK_MODEL=deepseek-chat`。
-- Kimi：`KIMI_API_KEY`、`KIMI_BASE_URL=https://api.moonshot.cn/v1`、`KIMI_MODEL=kimi-k2.5`。
+- Kimi：`KIMI_API_KEY`、`KIMI_BASE_URL=https://api.moonshot.cn/v1`、`KIMI_MODEL=kimi-k2.7-code-highspeed`。客服回复建议优先低延迟体验，官方文档标注该模型为高速版；如后续更看重通用客服话术质量，可评估 `kimi-k2.6` 或 `kimi-k3`。
 - Provider 选择：`AI_CHAT_PROVIDER=deepseek | kimi`。
 - 调用方式：OpenAI-compatible Chat Completions，使用 AI SDK `createOpenAI(...).chat(modelId)` 和 `streamText`，不要走 OpenAI Responses API。
 - 密钥变量严禁使用 `NEXT_PUBLIC_` 前缀，严禁返回给浏览器。

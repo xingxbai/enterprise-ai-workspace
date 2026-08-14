@@ -16,11 +16,32 @@ function getMessageText(message: UIMessage) {
     .join("");
 }
 
+async function fetchChatResponse(input: RequestInfo | URL, init?: RequestInit) {
+  const response = await fetch(input, init);
+
+  if (response.ok) {
+    return response;
+  }
+
+  const contentType = response.headers.get("content-type") ?? "";
+
+  if (contentType.includes("application/json")) {
+    const body = (await response.json()) as { message?: unknown };
+
+    if (typeof body.message === "string") {
+      throw new Error(body.message);
+    }
+  }
+
+  throw new Error("回复建议生成失败，请稍后重试");
+}
+
 export default function ReplySuggestionChatPanel({
   ticketId,
 }: ReplySuggestionChatPanelProps) {
   const transport = new DefaultChatTransport({
     api: "/api/ai/reply-chat",
+    fetch: fetchChatResponse,
     prepareSendMessagesRequest: (request) => {
       const { messageId, messages, trigger } = request;
       return {
@@ -134,7 +155,7 @@ export default function ReplySuggestionChatPanel({
       ) : null}
       {error ? (
         <p className="mt-2 text-xs leading-5 text-red-600">
-          回复建议生成失败，请稍后重试
+          {error.message || "回复建议生成失败，请稍后重试"}
         </p>
       ) : null}
     </div>

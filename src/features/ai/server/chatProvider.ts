@@ -31,7 +31,11 @@ const aiEnvironmentSchema = z.object({
   DEEPSEEK_MODEL: z.string().trim().min(1).default("deepseek-chat"),
   KIMI_API_KEY: z.string().trim().optional(),
   KIMI_BASE_URL: z.url().default("https://api.moonshot.cn/v1"),
-  KIMI_MODEL: z.string().trim().min(1).default("kimi-k2.5"),
+  KIMI_MODEL: z
+    .string()
+    .trim()
+    .min(1)
+    .default("kimi-k2.7-code-highspeed"),
 });
 
 export class ModelConfigurationError extends Error {

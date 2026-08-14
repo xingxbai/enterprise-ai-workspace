@@ -46,11 +46,14 @@ AI_CHAT_PROVIDER=deepseek
 
 ```env
 AI_CHAT_PROVIDER=kimi
+KIMI_MODEL=kimi-k2.7-code-highspeed
 ```
 
 前端页面、客服回复建议按钮、`useChat`、Route Handler 和 Prompt 组装逻辑都不需要改。
 
 注意：密钥仍然只保存在服务端变量中，不能使用 `NEXT_PUBLIC_` 前缀。
+
+当前客服回复建议优先验证低延迟体验，因此 Kimi 默认使用官方标注的高速版模型 `kimi-k2.7-code-highspeed`。如果后续更看重通用中文客服话术质量，可以在服务端配置中评估 `kimi-k2.6` 或 `kimi-k3`，但不应让前端参与模型选择。
 
 ## 底层原理
 
@@ -64,7 +67,7 @@ createOpenAI({
 }).chat(modelId)
 ```
 
-但是“兼容”不代表完全一样。不同厂商可能在模型名、baseURL、temperature 推荐值、错误格式、Token usage 字段、超时表现上存在差异。所以本项目把这些差异放进 `src/features/ai/server/chatProvider.ts`。
+但是“兼容”不代表完全一样。不同厂商可能在模型名、baseURL、temperature 推荐值、错误格式、Token usage 字段、首 token 延迟和超时表现上存在差异。所以本项目把这些差异放进 `src/features/ai/server/chatProvider.ts`。
 
 ## 本章代码改动
 
@@ -171,6 +174,7 @@ http://localhost:4000
 - 本地文件日志只用于学习演示，生产要接数据库、日志平台或事件流。
 - 不要在 Server Component 中 HTTP 调用自己的 Route Handler。
 - 新增 Provider 时先确认它是否真的兼容 Chat Completions，再封装差异。
+- 模型选择要结合业务目标：客服短回复优先首 token 延迟和稳定性，复杂推理或长上下文任务再选择更强但可能更慢的模型。
 
 ## 常见错误
 
@@ -292,7 +296,7 @@ pnpm lint
 
 ## 延伸阅读
 
-下一章建议进入 `Next.js AI BFF 请求校验和错误边界`，把 `/api/ai/reply-chat` 的请求体、错误返回、错误码、前端错误展示进一步做成统一企业规范。
+下一章进入 [第 10 天：Next.js AI BFF 请求校验和错误边界](./Day10NextjsAIBFF请求校验和错误边界.md)，把 `/api/ai/reply-chat` 的请求体、错误返回、错误码、前端错误展示进一步做成统一企业规范。
 
 ## 企业级练习与验收标准
 

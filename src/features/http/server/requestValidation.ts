@@ -2,6 +2,8 @@ import "server-only";
 
 import type { ZodError, ZodIssue } from "zod";
 
+import { createApiErrorResponse } from "@/features/http/server/apiResponse";
+
 type FieldLabels = Record<string, string>;
 
 function getIssueField(issue: ZodIssue) {
@@ -60,9 +62,12 @@ export function createRequestValidationMessage(
 export function createBadRequestResponseFromZodError(
   error: ZodError,
   fieldLabels?: FieldLabels,
+  requestId = crypto.randomUUID(),
 ) {
-  return Response.json(
-    { message: createRequestValidationMessage(error, fieldLabels) },
-    { status: 400 },
-  );
+  return createApiErrorResponse({
+    code: "VALIDATION_ERROR",
+    message: createRequestValidationMessage(error, fieldLabels),
+    requestId,
+    status: 400,
+  });
 }
