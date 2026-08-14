@@ -4,14 +4,17 @@
 
 ## 当前进度
 
-- 当前课程：第 11 天。
-- 当前知识点：服务端 Session 与可信身份。
-- 当前代码：页面、模型状态、AI 回复和工单审批均从服务端加密 Session 读取当前用户；浏览器只持有 HttpOnly Cookie，不能通过请求体指定 `userId`；模型审计记录服务端解析出的 `actorUserId`。
-- 当前边界：非生产环境提供明确标注的演示身份；生产环境尚未接入企业 SSO/OIDC、用户目录、租户隔离、RBAC 和资源级权限，因此仍不能直接作为生产登录方案。
+- 已完成课程：Day01～Day11。
+- 当前系统：已生成未接入 AI 的客服旧系统基线，包含服务工作台、工单、客户、知识库、团队权限和业务审计页面。
+- 下一节课：Day12，在工单列表接入分类、优先级和 SLA 风险结构化预测。
+- 当前数据：工单优先读取真实业务 API；开发环境不可用时使用明确标注的 demo fixture。其他业务模块当前使用非生产 demo fixture，生产环境不会返回演示数据。
+- 当前 AI 状态：历史 AI BFF、Provider Adapter 和 Streaming 源码暂时保留，但旧系统导航不暴露 AI 入口；后续课程会按页面逐步接入并演进，不另起孤立 Demo。
+- 当前安全边界：页面和 AI BFF 从服务端加密 Session 读取可信身份；生产环境仍需接入企业 SSO/OIDC、真实用户目录、租户隔离、RBAC 和资源级授权。
 
 ## 权威文档
 
 - [课程执行规范与 60 天路线](./docs/00课程执行规范与60天Offer路线.md)
+- [旧系统业务基线与 AI 接入地图](./docs/00旧系统业务基线与AI接入地图.md)
 - [第 1 天：App Router 与默认服务端组件边界](./docs/Day01AppRouter与默认服务端组件边界.md)
 - [第 2 天：Client Component 边界和可序列化 Props](./docs/Day02ClientComponent边界和可序列化Props.md)
 - [第 3 天：Route Handler 与服务端密钥边界](./docs/Day03RouteHandler与服务端密钥边界.md)
@@ -59,6 +62,7 @@
 - `zod`：运行时 Schema 校验，用于 Route Handler 请求体、Prompt 变量、模型输出和 Tool 参数校验。
 - `server-only`：服务端模块边界保护，防止密钥、Provider Adapter 和业务 API 代码被误导入客户端。
 - `iron-session`：Next.js 官方认证指南推荐的无状态 Session 库，用于签名、加密和管理 HttpOnly Cookie；它不负责企业账号认证或权限判断。
+- `lucide-react`：统一业务导航和操作图标，避免页面自行维护 SVG；图标组件会进入使用它们的客户端或服务端渲染产物。
 
 ### 开发期依赖
 

@@ -121,7 +121,7 @@ function recordTicketApiFailure(input: {
   usedDemoFixtures: boolean;
 }) {
   // 企业重点：只记录白名单诊断字段，不记录上游错误正文、Authorization 或客户数据。
-  console.error("工单 API 读取失败", input);
+  console.warn("工单 API 读取失败，已按环境策略降级", input);
 }
 
 function getFallbackTickets(
