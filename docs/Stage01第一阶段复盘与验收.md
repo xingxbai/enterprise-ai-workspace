@@ -32,7 +32,7 @@ Server Component 工单列表
   -> requestId + usage 学习审计
 ```
 
-## 自动化验收
+## 静态检查与手动验收
 
 ```bash
 pnpm typecheck

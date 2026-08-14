@@ -7,8 +7,6 @@
     "build": "next build",
     "start": "next start --port 4000",
     "lint": "eslint",
-    "test": "vitest run",
-    "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -31,9 +29,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.3.0",
     "tailwindcss": "^4",
-    "typescript": "^5",
-    "vite": "^8.2.1",
-    "vitest": "^4.1.10"
+    "typescript": "^5"
   },
   "packageManager": "pnpm@7.9.0"
 }
