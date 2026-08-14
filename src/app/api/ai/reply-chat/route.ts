@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { createReplySuggestionChatResponse } from "@/features/customer-service/server/replySuggestionChatStream";
+import { authenticateApiRequest } from "@/features/auth/server/session";
 import {
   createApiErrorResponse,
   createRequestId,
@@ -25,6 +26,12 @@ const replaySchema = z.object({
 })
 export async function POST(request: Request) {
   const requestId = createRequestId();
+  const authentication = await authenticateApiRequest(requestId);
+
+  if (!authentication.ok) {
+    return authentication.response;
+  }
+
   let body: unknown;
 
   try {
@@ -55,6 +62,7 @@ export async function POST(request: Request) {
   }
 
   return createReplySuggestionChatResponse({
+    actorUserId: authentication.user.id,
     messages: payload.data.messages,
     requestId,
     signal: request.signal,

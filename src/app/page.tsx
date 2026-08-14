@@ -1,10 +1,13 @@
 import { getTicketSummaries } from "@/data/tickets";
 import { getChatProvidersStatus } from "@/features/ai/server/chatProvider";
+import { requireAuthenticatedUser } from "@/features/auth/server/session";
 import ApproveButton from "./approveButton";
 import DetailModal from "./detailModal";
 import ReplySuggestionChatPanel from "./replySuggestionChatPanel";
+import { signOut } from "./login/actions";
 
 export default async function Home() {
+  const currentUser = await requireAuthenticatedUser();
   const environmentLabel =
     process.env.NODE_ENV === "production" ? "生产环境" : "开发环境";
   const providerStatus = getChatProvidersStatus();
@@ -16,9 +19,24 @@ export default async function Home() {
   return (
     <main className="min-h-screen bg-zinc-100 text-zinc-950">
       <header className="border-b border-zinc-200 bg-white">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
+        <div className="mx-auto flex min-h-16 max-w-6xl flex-wrap items-center justify-between gap-3 px-6 py-3">
           <p className="font-semibold">Enterprise AI Workspace</p>
-          <span className="text-sm text-zinc-500">{environmentLabel}</span>
+          <div className="flex items-center gap-3 text-sm">
+            <span className="whitespace-nowrap text-zinc-600">
+              {currentUser.displayName}
+            </span>
+            <span className="hidden text-zinc-400 sm:inline">
+              {environmentLabel}
+            </span>
+            <form action={signOut}>
+              <button
+                className="text-zinc-600 hover:text-zinc-950"
+                type="submit"
+              >
+                退出
+              </button>
+            </form>
+          </div>
         </div>
       </header>
 

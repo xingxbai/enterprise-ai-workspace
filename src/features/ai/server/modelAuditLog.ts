@@ -9,6 +9,7 @@ import {
 } from "@/features/ai/server/chatProvider";
 
 type ModelCompletionLog = {
+  actorUserId: string;
   createdAt: string;
   finishReason?: string;
   modelId: string;
@@ -68,6 +69,7 @@ async function appendModelCompletionLog(entry: ModelCompletionLog) {
 }
 
 export async function recordModelCompletion(input: {
+  actorUserId: string;
   finishReason?: string;
   modelId: string;
   providerId: ChatProviderId;
@@ -75,6 +77,7 @@ export async function recordModelCompletion(input: {
   usage?: unknown;
 }) {
   const entry: ModelCompletionLog = {
+    actorUserId: input.actorUserId,
     createdAt: new Date().toISOString(),
     finishReason: input.finishReason,
     modelId: input.modelId,

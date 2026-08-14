@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { createTicketsApiUrl, getBusinessApiHeaders } from "@/data/tickets";
+import { authenticateApiRequest } from "@/features/auth/server/session";
 import {
   createApiErrorResponse,
   createApiResponseHeaders,
@@ -19,6 +20,12 @@ const APPROVE_REQUEST_TIMEOUT_MS = 10_000;
 
 export async function POST(request: Request) {
   const requestId = createRequestId();
+  const authentication = await authenticateApiRequest(requestId);
+
+  if (!authentication.ok) {
+    return authentication.response;
+  }
+
   let body: unknown;
 
   try {

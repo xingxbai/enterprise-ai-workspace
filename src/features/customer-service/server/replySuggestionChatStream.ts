@@ -22,6 +22,7 @@ import {
 } from "@/features/http/server/apiResponse";
 
 type ReplySuggestionChatInput = {
+  actorUserId: string;
   messages: unknown;
   requestId: string;
   signal: AbortSignal;
@@ -57,6 +58,7 @@ function createReplySuggestionPrompt(input: {
 }
 
 export async function createReplySuggestionChatResponse({
+  actorUserId,
   messages,
   requestId,
   signal,
@@ -129,6 +131,7 @@ export async function createReplySuggestionChatResponse({
     },
     onFinish: ({ finishReason, totalUsage }) => {
       void recordModelCompletion({
+        actorUserId,
         finishReason,
         modelId: configuration.modelId,
         providerId: configuration.providerId,
