@@ -209,10 +209,20 @@ export function recordModelError(
   providerId: ChatProviderId | "unknown",
   error: unknown,
 ) {
+  const apiError =
+    typeof error === "object" && error !== null
+      ? (error as { isRetryable?: unknown; statusCode?: unknown })
+      : null;
   // 企业重点：上游错误正文不可控，只记录白名单字段，避免正则脱敏遗漏密钥或客户数据。
   console.error("模型调用失败", {
+    isRetryable:
+      typeof apiError?.isRetryable === "boolean"
+        ? apiError.isRetryable
+        : undefined,
     name: error instanceof Error ? error.name : typeof error,
     providerId,
+    statusCode:
+      typeof apiError?.statusCode === "number" ? apiError.statusCode : undefined,
   });
 }
 

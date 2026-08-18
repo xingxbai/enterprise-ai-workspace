@@ -2,6 +2,7 @@ import { Search } from "lucide-react";
 import Link from "next/link";
 
 import EmptyState from "@/components/workspace/emptyState";
+import TicketPredictionCell from "@/components/tickets/ticketPredictionCell";
 import PageHeader from "@/components/workspace/pageHeader";
 import StatusBadge from "@/components/workspace/statusBadge";
 import { getLegacyTickets } from "@/data/legacySystem";
@@ -43,7 +44,7 @@ export default async function TicketsPage({
   return (
     <div className="space-y-6">
       <PageHeader
-        description="查询、筛选并跟进客户问题。分类、优先级和负责人当前由客服人工维护。"
+        description="查询、筛选并跟进客户问题。人工字段保持不变，AI 预测仅作为客服分诊建议。"
         eyebrow="Ticket operations"
         title="工单管理"
       />
@@ -116,6 +117,9 @@ export default async function TicketsPage({
                       {ticket.subject}
                     </Link>
                     <p className="mt-1 text-xs text-zinc-500">{ticket.id} · {ticket.channel}</p>
+                    <div className="mt-3">
+                      <TicketPredictionCell ticketId={ticket.id} />
+                    </div>
                   </td>
                   <td className="px-4 py-3">{ticket.customerName}</td>
                   <td className="px-4 py-3 text-zinc-600">{ticket.category}</td>
